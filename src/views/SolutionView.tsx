@@ -10,11 +10,16 @@ import {
   Sliders, 
   Compass, 
   BookOpen,
-  Trophy
+  Trophy,
+  ShieldAlert,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCube } from '../context';
+import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
+import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
 import PageHeader from '../components/common/PageHeader';
 import { isCubeSolved } from '../services/cubeState';
 import { parseMoveToStep } from '../services/solvers/rubiks3x3';
@@ -22,6 +27,8 @@ import type { SolutionStep } from '../types/cube';
 
 export const SolutionView: React.FC = () => {
   const { 
+    selectedPuzzle,
+    setSelectedPuzzle,
     cubeState, 
     applySingleMove, 
     solutionSteps, 
@@ -35,7 +42,10 @@ export const SolutionView: React.FC = () => {
     loadSolution,
   } = useCube();
 
-  const isSolved = isCubeSolved(cubeState);
+  const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
+  const is3x3 = selectedPuzzle === '3x3';
+
+  const isSolved = is3x3 ? isCubeSolved(cubeState) : false;
   const totalSteps = solutionSteps.length;
   const currentStep = totalSteps > 0 && activeStepIndex < totalSteps ? solutionSteps[activeStepIndex] : null;
 
@@ -59,10 +69,10 @@ export const SolutionView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isSolved) {
+    if (isSolved && is3x3) {
       triggerCelebration();
     }
-  }, [isSolved]);
+  }, [isSolved, is3x3]);
 
   const handleNextStep = () => {
     if (activeStepIndex < totalSteps) {
@@ -99,7 +109,7 @@ export const SolutionView: React.FC = () => {
 
   useEffect(() => {
     let interval: any = null;
-    if (isPlayingSolution) {
+    if (isPlayingSolution && is3x3) {
       interval = setInterval(() => {
         if (activeStepIndex < totalSteps) {
           const step = solutionSteps[activeStepIndex];
@@ -121,9 +131,10 @@ export const SolutionView: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlayingSolution, activeStepIndex, totalSteps, playbackSpeed, solutionSteps, applySingleMove, setActiveStepIndex, setIsPlayingSolution]);
+  }, [isPlayingSolution, is3x3, activeStepIndex, totalSteps, playbackSpeed, solutionSteps, applySingleMove, setActiveStepIndex, setIsPlayingSolution]);
 
   const handleScrambleAndSolve = () => {
+    if (!is3x3) return;
     setIsPlayingSolution(false);
     const moves = scrambleCube(12);
     const solutionMoves = [...moves].reverse().map(invertMove);
@@ -133,22 +144,56 @@ export const SolutionView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <PageHeader
-        title="Interactive 3D Solution Visualizer"
-        subtitle="Follow each move step-by-step with 3D rotations, scrubber controls, and official Singmaster notations."
-        badge="3D Engine"
+        title={`Interactive 3D Solution Visualizer • ${puzzleDef.name}`}
+        subtitle={`Step through each move with 3D rotations, scrubber controls, and official Singmaster notations.`}
+        badge={puzzleDef.dimensionsLabel}
         backTo="validate"
         actions={
-          <button
-            onClick={handleScrambleAndSolve}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <Shuffle className="w-3.5 h-3.5 text-amber-400" />
-            <span>Generate Demo Scramble & Solution</span>
-          </button>
+          is3x3 ? (
+            <button
+              onClick={handleScrambleAndSolve}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <Shuffle className="w-3.5 h-3.5 text-amber-400" />
+              <span>Generate Demo Scramble & Solution</span>
+            </button>
+          ) : undefined
         }
       />
 
-      {isSolved && totalSteps === 0 && (
+      {/* Unsupported Puzzle Notice */}
+      {!puzzleDef.supported && (
+        <div className="p-8 rounded-3xl bg-slate-900/80 border-2 border-amber-500/40 shadow-2xl mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl font-extrabold text-white">
+                Solver Not Yet Available for {puzzleDef.name}
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                The {puzzleDef.geometryType} solving engine ({puzzleDef.engineName}) is currently in development. To avoid generating false or non-solvable algorithms, this puzzle's step-by-step solver is reserved for the upcoming algorithm release.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setSelectedPuzzle('3x3');
+              handleScrambleAndSolve();
+            }}
+            className="px-6 py-3.5 rounded-2xl font-bold text-xs bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all cursor-pointer flex items-center gap-2 shrink-0"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Switch to 3×3 Rubik's Cube Solver</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Solved celebration banner if 3x3 is solved */}
+      {is3x3 && isSolved && totalSteps === 0 && (
         <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/40 border border-emerald-500/40 shadow-2xl mb-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -175,16 +220,22 @@ export const SolutionView: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left: 3D Animated Rubik's Cube or Puzzle Preview */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="h-[440px] sm:h-[480px] w-full">
-            <RubiksCube3D
-              cubeState={cubeState}
-              interactive={false}
-              autoRotate={false}
-            />
+          <div className="h-[440px] sm:h-[480px] w-full rounded-2xl bg-slate-950/60 border border-slate-800/80 overflow-hidden">
+            {is3x3 ? (
+              <RubiksCube3D
+                cubeState={cubeState}
+                interactive={false}
+                autoRotate={false}
+              />
+            ) : (
+              <PuzzlePreview3D puzzleId={selectedPuzzle} autoRotate={true} className="w-full h-full" />
+            )}
           </div>
 
-          {totalSteps > 0 && (
+          {/* Scrubber / Step Timeline for 3x3 */}
+          {is3x3 && totalSteps > 0 && (
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span className="font-semibold text-slate-200">Solution Timeline</span>
@@ -229,6 +280,7 @@ export const SolutionView: React.FC = () => {
           )}
         </div>
 
+        {/* Right: Step Explanation & Controls */}
         <div className="lg:col-span-5 space-y-6">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-6">
             <div className="flex items-center justify-between">
@@ -236,11 +288,11 @@ export const SolutionView: React.FC = () => {
                 Current Move Instruction
               </span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                {totalSteps > 0 ? `Step ${Math.min(activeStepIndex + 1, totalSteps)} / ${totalSteps}` : 'Ready'}
+                {is3x3 && totalSteps > 0 ? `Step ${Math.min(activeStepIndex + 1, totalSteps)} / ${totalSteps}` : 'Ready'}
               </span>
             </div>
 
-            {currentStep ? (
+            {is3x3 && currentStep ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-cyan-500/20">
@@ -263,12 +315,21 @@ export const SolutionView: React.FC = () => {
                   />
                 </div>
               </div>
-            ) : isSolved ? (
+            ) : is3x3 && isSolved ? (
               <div className="text-center py-6 space-y-2">
                 <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
                 <h4 className="text-lg font-bold text-white">Solved State Reached!</h4>
                 <p className="text-xs text-slate-400">
                   All faces have been restored to their standard solved colors.
+                </p>
+              </div>
+            ) : !is3x3 ? (
+              <div className="text-center py-6 space-y-3">
+                <ShieldAlert className="w-10 h-10 text-amber-400 mx-auto" />
+                <h4 className="text-base font-bold text-white">{puzzleDef.name} Engine</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Compatible engine: <strong>{puzzleDef.engineName}</strong>.<br />
+                  Algorithms: {puzzleDef.algorithmSupport}.
                 </p>
               </div>
             ) : (
@@ -281,7 +342,7 @@ export const SolutionView: React.FC = () => {
               </div>
             )}
 
-            {totalSteps > 0 && (
+            {is3x3 && totalSteps > 0 && (
               <div className="pt-4 border-t border-slate-800 space-y-4">
                 <div className="flex items-center justify-center gap-3">
                   <button
@@ -347,14 +408,14 @@ export const SolutionView: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400 space-y-2">
             <h5 className="font-bold text-slate-200 flex items-center gap-2">
               <Compass className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Standard Singmaster Notation</span>
+              <span>{puzzleDef.name} Notation Guide</span>
             </h5>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div><strong>U / D</strong>: Up / Down face</div>
-              <div><strong>R / L</strong>: Right / Left face</div>
-              <div><strong>F / B</strong>: Front / Back face</div>
-              <div><strong>'</strong>: Counter-clockwise</div>
-              <div><strong>2</strong>: 180° Half turn</div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {puzzleDef.moveNotation.map((move) => (
+                <span key={move} className="px-2 py-1 rounded bg-slate-950 border border-slate-800 font-mono text-cyan-300 text-xs font-bold">
+                  {move}
+                </span>
+              ))}
             </div>
           </div>
         </div>

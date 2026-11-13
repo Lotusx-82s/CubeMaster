@@ -21,8 +21,8 @@ export function validateCubeState3x3(state: CubeState3x3): ValidationResult {
     }
   }
 
-  // 2. Count total stickers of each color
-  const colorCounts: Record<CubeColor, number> = {
+  // 2. Count total stickers of each standard color
+  const colorCounts: Record<string, number> = {
     white: 0,
     yellow: 0,
     green: 0,
@@ -52,7 +52,7 @@ export function validateCubeState3x3(state: CubeState3x3): ValidationResult {
   // 3. Verify exactly 9 of each color
   const requiredColors: CubeColor[] = ['white', 'yellow', 'green', 'blue', 'red', 'orange'];
   for (const color of requiredColors) {
-    const count = colorCounts[color];
+    const count = colorCounts[color] || 0;
     if (count !== 9) {
       issues.push({
         type: 'error',

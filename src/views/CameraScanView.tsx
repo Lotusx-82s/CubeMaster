@@ -6,22 +6,22 @@ import {
   RefreshCw, 
   AlertCircle,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { useCube } from '../context';
-import type { CubeColor, FaceId } from '../types/cube';
-import { CUBE_COLORS, FACE_NAMES } from '../types/cube';
+import { PUZZLE_DEFINITIONS } from '../services/puzzles';
+import type { CubeColor } from '../types/cube';
+import { CUBE_COLORS } from '../types/cube';
 import PageHeader from '../components/common/PageHeader';
 
-const ORDERED_FACES: FaceId[] = ['U', 'R', 'F', 'D', 'L', 'B'];
-
-function classifyRgbToCubeColor(r: number, g: number, b: number): CubeColor {
+function classifyRgbToCubeColor(r: number, g: number, b: number, allowedColors: CubeColor[]): CubeColor {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const diff = max - min;
   const brightness = (r + g + b) / 3;
 
-  if (brightness > 175 && diff < 40) {
+  if (allowedColors.includes('white') && brightness > 175 && diff < 40) {
     return 'white';
   }
 
@@ -32,12 +32,19 @@ function classifyRgbToCubeColor(r: number, g: number, b: number): CubeColor {
     blue: [20, 70, 185],
     red: [190, 25, 30],
     orange: [235, 95, 15],
+    purple: [147, 51, 234],
+    pink: [236, 72, 153],
+    lightgreen: [74, 222, 128],
+    lightblue: [56, 189, 248],
+    grey: [100, 116, 139],
+    cream: [254, 240, 138],
   };
 
-  let bestColor: CubeColor = 'white';
+  let bestColor: CubeColor = allowedColors[0] || 'white';
   let minDistance = Infinity;
 
-  for (const [colorName, [pr, pg, pb]] of Object.entries(palettes) as [CubeColor, [number, number, number]][]) {
+  for (const color of allowedColors) {
+    const [pr, pg, pb] = palettes[color] || [128, 128, 128];
     const rmean = (r + pr) / 2;
     const dr = r - pr;
     const dg = g - pg;
@@ -45,7 +52,7 @@ function classifyRgbToCubeColor(r: number, g: number, b: number): CubeColor {
     const distance = Math.sqrt((2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db);
     if (distance < minDistance) {
       minDistance = distance;
-      bestColor = colorName;
+      bestColor = color;
     }
   }
 
@@ -53,28 +60,32 @@ function classifyRgbToCubeColor(r: number, g: number, b: number): CubeColor {
 }
 
 export const CameraScanView: React.FC = () => {
-  const { cubeState, setFaceColors, setView } = useCube();
-  const [activeFace, setActiveFace] = useState<FaceId>('U');
+  const { selectedPuzzle, cubeState, setFaceColors, setView } = useCube();
+  const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
+
+  const [activeFaceId, setActiveFaceId] = useState<string>(() => puzzleDef.faceNames[0]?.id || 'U');
   const [streamActive, setStreamActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [capturedFaces, setCapturedFaces] = useState<Record<FaceId, boolean>>({
-    U: false,
-    R: false,
-    F: false,
-    D: false,
-    L: false,
-    B: false,
-  });
 
-  const [previewStickers, setPreviewStickers] = useState<(CubeColor | null)[]>(() => [...cubeState.U]);
+  const [capturedFaces, setCapturedFaces] = useState<Record<string, boolean>>({});
+
+  // Current detected stickers for active face
+  const [previewStickers, setPreviewStickers] = useState<(CubeColor | null)[]>(() => 
+    Array(puzzleDef.stickersPerFace).fill(puzzleDef.faceNames[0]?.defaultColor || 'white')
+  );
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleSelectFace = (face: FaceId) => {
-    setActiveFace(face);
-    setPreviewStickers([...cubeState[face]]);
+  const handleSelectFace = (faceId: string) => {
+    setActiveFaceId(faceId);
+    const targetFace = puzzleDef.faceNames.find(f => f.id === faceId);
+    if (selectedPuzzle === '3x3' && faceId in cubeState) {
+      setPreviewStickers([...cubeState[faceId as keyof typeof cubeState]]);
+    } else {
+      setPreviewStickers(Array(puzzleDef.stickersPerFace).fill(targetFace?.defaultColor || 'white'));
+    }
   };
 
   const startCamera = async () => {
@@ -111,7 +122,6 @@ export const CameraScanView: React.FC = () => {
   };
 
   useEffect(() => {
-    // Attempt auto-starting camera stream once on mount
     let isMounted = true;
     navigator.mediaDevices?.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } },
@@ -146,36 +156,35 @@ export const CameraScanView: React.FC = () => {
     canvas.height = 300;
     ctx.drawImage(imageSource, 0, 0, 300, 300);
 
+    const count = puzzleDef.stickersPerFace;
     const newColors: CubeColor[] = [];
-    const step = 300 / 3;
+
+    // Distribute sample points across the canvas based on sticker count
+    const cols = Math.ceil(Math.sqrt(count));
+    const step = 300 / cols;
     const offset = step / 2;
 
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) {
-        if (row === 1 && col === 1) {
-          newColors.push(FACE_NAMES[activeFace].standardColor);
-          continue;
-        }
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const x = Math.floor(col * step + offset);
+      const y = Math.floor(row * step + offset);
 
-        const x = Math.floor(col * step + offset);
-        const y = Math.floor(row * step + offset);
-        const pixelData = ctx.getImageData(x - 5, y - 5, 10, 10).data;
-
-        let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
-        for (let p = 0; p < pixelData.length; p += 4) {
-          rTotal += pixelData[p];
-          gTotal += pixelData[p + 1];
-          bTotal += pixelData[p + 2];
-          count++;
-        }
-
-        const r = Math.round(rTotal / count);
-        const g = Math.round(gTotal / count);
-        const b = Math.round(bTotal / count);
-
-        const detected = classifyRgbToCubeColor(r, g, b);
-        newColors.push(detected);
+      const pixelData = ctx.getImageData(Math.max(0, x - 5), Math.max(0, y - 5), 10, 10).data;
+      let rTotal = 0, gTotal = 0, bTotal = 0, pCount = 0;
+      for (let p = 0; p < pixelData.length; p += 4) {
+        rTotal += pixelData[p];
+        gTotal += pixelData[p + 1];
+        bTotal += pixelData[p + 2];
+        pCount++;
       }
+
+      const r = Math.round(rTotal / pCount);
+      const g = Math.round(gTotal / pCount);
+      const b = Math.round(bTotal / pCount);
+
+      const detected = classifyRgbToCubeColor(r, g, b, puzzleDef.colorSet);
+      newColors.push(detected);
     }
 
     setPreviewStickers(newColors);
@@ -199,10 +208,8 @@ export const CameraScanView: React.FC = () => {
   };
 
   const handleOverrideStickerColor = (index: number) => {
-    if (index === 4) return;
-
-    const colorOrder: CubeColor[] = ['white', 'yellow', 'green', 'blue', 'red', 'orange'];
-    const current = previewStickers[index] || 'white';
+    const colorOrder = puzzleDef.colorSet;
+    const current = previewStickers[index] || colorOrder[0];
     const nextIndex = (colorOrder.indexOf(current) + 1) % colorOrder.length;
     const updated = [...previewStickers];
     updated[index] = colorOrder[nextIndex];
@@ -210,25 +217,28 @@ export const CameraScanView: React.FC = () => {
   };
 
   const handleSaveFace = () => {
-    setFaceColors(activeFace, previewStickers);
-    setCapturedFaces(prev => ({ ...prev, [activeFace]: true }));
+    if (selectedPuzzle === '3x3') {
+      setFaceColors(activeFaceId as any, previewStickers);
+    }
+    setCapturedFaces(prev => ({ ...prev, [activeFaceId]: true }));
 
-    const currentIndex = ORDERED_FACES.indexOf(activeFace);
-    if (currentIndex < ORDERED_FACES.length - 1) {
-      const nextFace = ORDERED_FACES[currentIndex + 1];
-      setActiveFace(nextFace);
-      setPreviewStickers([...cubeState[nextFace]]);
+    const currentIndex = puzzleDef.faceNames.findIndex(f => f.id === activeFaceId);
+    if (currentIndex < puzzleDef.faceNames.length - 1) {
+      const nextFace = puzzleDef.faceNames[currentIndex + 1];
+      setActiveFaceId(nextFace.id);
+      setPreviewStickers(Array(puzzleDef.stickersPerFace).fill(nextFace.defaultColor));
     }
   };
 
-  const allCaptured = Object.values(capturedFaces).filter(Boolean).length === 6;
+  const allCaptured = Object.keys(capturedFaces).length === puzzleDef.facesCount;
+  const currentFaceMeta = puzzleDef.faceNames.find(f => f.id === activeFaceId) || puzzleDef.faceNames[0];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <PageHeader
-        title="AI Camera Cube Scanner"
-        subtitle="Position your Rubik's Cube within the 3x3 alignment grid and capture each face in sequence."
-        badge="Computer Vision"
+        title={`AI Camera Scanner • ${puzzleDef.name}`}
+        subtitle={`Align each face within the targeting frame to capture all ${puzzleDef.facesCount} faces of your ${puzzleDef.dimensionsLabel} puzzle.`}
+        badge={puzzleDef.dimensionsLabel}
         backTo="select"
         actions={
           <button
@@ -240,17 +250,30 @@ export const CameraScanView: React.FC = () => {
         }
       />
 
+      {/* Solver status banner if unsupported */}
+      {!puzzleDef.supported && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold text-amber-300 block mb-0.5">
+              Solver Not Yet Available for {puzzleDef.name}
+            </strong>
+            Camera vision scanning captures and classifies colors for this {puzzleDef.geometryType} geometry. The automated solving algorithm for this puzzle is currently in active development.
+          </div>
+        </div>
+      )}
+
+      {/* Face Navigation Tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-        {ORDERED_FACES.map((face) => {
-          const isSelected = activeFace === face;
-          const isDone = capturedFaces[face];
-          const standardColor = FACE_NAMES[face].standardColor;
-          const colorDef = CUBE_COLORS[standardColor];
+        {puzzleDef.faceNames.map((face) => {
+          const isSelected = activeFaceId === face.id;
+          const isDone = capturedFaces[face.id];
+          const colorDef = CUBE_COLORS[face.defaultColor] || { hex: '#38bdf8', borderHex: '#0284c7' };
 
           return (
             <button
-              key={face}
-              onClick={() => handleSelectFace(face)}
+              key={face.id}
+              onClick={() => handleSelectFace(face.id)}
               className={`p-3.5 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer ${
                 isSelected
                   ? 'bg-slate-900 border-cyan-500 shadow-lg shadow-cyan-500/10'
@@ -264,10 +287,10 @@ export const CameraScanView: React.FC = () => {
                 />
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-1">
-                    <span>{face} Face</span>
+                    <span>{face.id}</span>
                   </div>
-                  <span className="text-[10px] text-slate-400 block">
-                    {FACE_NAMES[face].name.split(' ')[0]}
+                  <span className="text-[10px] text-slate-400 block truncate max-w-[90px]">
+                    {face.name}
                   </span>
                 </div>
               </div>
@@ -324,27 +347,23 @@ export const CameraScanView: React.FC = () => {
               </div>
             )}
 
-            <div className="absolute inset-8 pointer-events-none grid grid-cols-3 grid-rows-3 gap-2 border-2 border-cyan-400/60 rounded-2xl p-2 bg-cyan-950/10 backdrop-blur-[0.5px]">
-              {Array(9).fill(0).map((_, i) => (
-                <div
-                  key={i}
-                  className={`border border-cyan-400/30 rounded-xl flex items-center justify-center relative ${
-                    i === 4 ? 'bg-cyan-500/10 border-cyan-400' : ''
-                  }`}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/50" />
-                  {i === 4 && (
-                    <span className="absolute text-[10px] font-bold text-cyan-300 uppercase tracking-wider bg-slate-950/80 px-2 py-0.5 rounded-md -bottom-2">
-                      Center: {FACE_NAMES[activeFace].standardColor}
-                    </span>
-                  )}
-                </div>
-              ))}
+            {/* Target Alignment Grid */}
+            <div className="absolute inset-8 pointer-events-none border-2 border-cyan-400/60 rounded-2xl p-2 bg-cyan-950/10 backdrop-blur-[0.5px] flex items-center justify-center">
+              <div className="grid grid-cols-3 gap-2 w-full h-full">
+                {Array(Math.min(9, puzzleDef.stickersPerFace)).fill(0).map((_, i) => (
+                  <div
+                    key={i}
+                    className="border border-cyan-400/30 rounded-xl flex items-center justify-center"
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/50" />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/80 text-xs text-white flex items-center gap-2 pointer-events-none">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Scanning: <strong>{FACE_NAMES[activeFace].name}</strong></span>
+              <span>Scanning Face: <strong>{currentFaceMeta.name}</strong></span>
             </div>
           </div>
 
@@ -355,7 +374,7 @@ export const CameraScanView: React.FC = () => {
                 className="flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Camera className="w-4 h-4" />
-                <span>Sample {activeFace} Face</span>
+                <span>Sample {activeFaceId} Face</span>
               </button>
             )}
 
@@ -381,41 +400,38 @@ export const CameraScanView: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span>Detected Stickers</span>
+                  <span>Detected Facelets</span>
                   <span className="text-xs font-semibold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    {activeFace} Face
+                    {activeFaceId}
                   </span>
                 </h3>
                 <span className="text-xs text-slate-400">
-                  Tap any sticker to adjust color
+                  Tap to cycle colors
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Verify each sticker matches your physical cube under your lighting.
+                Ensure each of the {puzzleDef.stickersPerFace} facelets matches your physical puzzle.
               </p>
             </div>
 
             <div className="aspect-square max-w-[280px] mx-auto grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner">
               {previewStickers.map((color, idx) => {
                 const colorDef = color ? CUBE_COLORS[color] : null;
-                const isCenter = idx === 4;
 
                 return (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleOverrideStickerColor(idx)}
-                    title={isCenter ? 'Fixed Center' : 'Click to cycle color'}
-                    className={`w-full h-full rounded-xl border-2 transition-all flex items-center justify-center font-bold text-xs shadow-sm cursor-pointer hover:scale-105 active:scale-95 ${
-                      isCenter ? 'ring-2 ring-cyan-400/50 cursor-default' : ''
-                    }`}
+                    title={`Facelet #${idx + 1}`}
+                    className="w-full h-full rounded-xl border-2 transition-all flex items-center justify-center font-bold text-xs shadow-sm cursor-pointer hover:scale-105 active:scale-95"
                     style={{
                       backgroundColor: colorDef ? colorDef.hex : '#334155',
                       borderColor: colorDef ? colorDef.borderHex : '#475569',
                       color: colorDef ? colorDef.textColor : '#ffffff',
                     }}
                   >
-                    {isCenter ? '★' : ''}
+                    {idx + 1}
                   </button>
                 );
               })}
@@ -427,7 +443,7 @@ export const CameraScanView: React.FC = () => {
                 className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Check className="w-4 h-4" />
-                <span>Confirm {activeFace} Face & Continue</span>
+                <span>Confirm {activeFaceId} & Next Face</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
 
@@ -437,7 +453,7 @@ export const CameraScanView: React.FC = () => {
                   className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>All 6 Faces Captured • Validate Cube</span>
+                  <span>All {puzzleDef.facesCount} Faces Captured • Validate</span>
                 </button>
               )}
             </div>
@@ -446,12 +462,12 @@ export const CameraScanView: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 text-xs text-slate-400 space-y-2">
             <h5 className="font-bold text-slate-200 flex items-center gap-2">
               <AlertCircle className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Scanning Tips for Best Accuracy</span>
+              <span>Scanning Guidelines</span>
             </h5>
             <ul className="space-y-1.5 list-disc list-inside">
-              <li>Ensure good, even lighting without heavy glares or shadows.</li>
-              <li>Hold the cube steady and align all 9 stickers inside the colored boxes.</li>
-              <li>Keep <strong>White on Top</strong> and <strong>Green in Front</strong> for standard orientation.</li>
+              <li>Keep ambient light even and avoid direct glares.</li>
+              <li>Align the {puzzleDef.name} steadily inside the target window.</li>
+              <li>Tap any detected facelet if your camera lens distorts color warmth.</li>
             </ul>
           </div>
         </div>

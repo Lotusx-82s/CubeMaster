@@ -6,9 +6,7 @@ import {
   Shuffle, 
   ShieldCheck, 
   ShieldAlert, 
-  Layers,
-  ArrowRight,
-  Info
+  Layers
 } from 'lucide-react';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
