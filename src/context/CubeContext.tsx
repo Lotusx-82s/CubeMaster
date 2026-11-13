@@ -1,0 +1,162 @@
+import React, { useState, useCallback, useMemo } from 'react';
+import type { 
+  CubeColor, 
+  CubeState3x3, 
+  FaceId, 
+  InputMode, 
+  PuzzleTypeId, 
+  SolutionStep, 
+  ValidationResult 
+} from '../types/cube';
+import type { AppView } from '../types/navigation';
+import { 
+  applyMove, 
+  applyMoves, 
+  createEmptyCubeState, 
+  createSolvedCubeState, 
+  generateScramble 
+} from '../services/cubeState';
+import { validateCubeState3x3 } from '../services/validator';
+import { CubeContext } from './cubeContextInstance';
+import type { CubeContextType } from './cubeContextInstance';
+
+export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentView, setView] = useState<AppView>('home');
+  const [selectedPuzzle, setSelectedPuzzle] = useState<PuzzleTypeId>('3x3');
+  const [inputMode, setInputMode] = useState<InputMode>('manual');
+  
+  const [cubeState, setCubeState] = useState<CubeState3x3>(() => createSolvedCubeState());
+  const [selectedColor, setSelectedColor] = useState<CubeColor>('white');
+  const [activeFace, setActiveFace] = useState<FaceId>('F');
+  
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [solutionSteps, setSolutionSteps] = useState<SolutionStep[]>([]);
+  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
+  const [isPlayingSolution, setIsPlayingSolution] = useState<boolean>(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1000);
+  const [scrambleMoves, setScrambleMoves] = useState<string[]>([]);
+
+  const setStickerColor = useCallback((face: FaceId, index: number, color: CubeColor | null) => {
+    setCubeState(prev => {
+      const nextFace = [...prev[face]];
+      nextFace[index] = color;
+      return {
+        ...prev,
+        [face]: nextFace,
+      };
+    });
+    setValidationResult(null);
+  }, []);
+
+  const setFaceColors = useCallback((face: FaceId, colors: (CubeColor | null)[]) => {
+    setCubeState(prev => ({
+      ...prev,
+      [face]: [...colors],
+    }));
+    setValidationResult(null);
+  }, []);
+
+  const resetToSolved = useCallback(() => {
+    setCubeState(createSolvedCubeState());
+    setValidationResult(null);
+    setSolutionSteps([]);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+  }, []);
+
+  const clearCube = useCallback((preserveCenters = true) => {
+    setCubeState(createEmptyCubeState(preserveCenters));
+    setValidationResult(null);
+    setSolutionSteps([]);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+  }, []);
+
+  const scrambleCube = useCallback((length = 20) => {
+    const moves = generateScramble(length);
+    setScrambleMoves(moves);
+    setCubeState(prev => applyMoves(prev, moves));
+    setValidationResult(null);
+    setSolutionSteps([]);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+    return moves;
+  }, []);
+
+  const applySingleMove = useCallback((move: string) => {
+    setCubeState(prev => applyMove(prev, move));
+  }, []);
+
+  const runValidation = useCallback((): ValidationResult => {
+    const result = validateCubeState3x3(cubeState);
+    setValidationResult(result);
+    return result;
+  }, [cubeState]);
+
+  const loadSolution = useCallback((steps: SolutionStep[]) => {
+    setSolutionSteps(steps);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+  }, []);
+
+  const value = useMemo<CubeContextType>(() => ({
+    currentView,
+    setView,
+    selectedPuzzle,
+    setSelectedPuzzle,
+    inputMode,
+    setInputMode,
+    cubeState,
+    setCubeState,
+    setStickerColor,
+    setFaceColors,
+    selectedColor,
+    setSelectedColor,
+    activeFace,
+    setActiveFace,
+    resetToSolved,
+    clearCube,
+    scrambleCube,
+    applySingleMove,
+    validationResult,
+    runValidation,
+    solutionSteps,
+    activeStepIndex,
+    setActiveStepIndex,
+    isPlayingSolution,
+    setIsPlayingSolution,
+    playbackSpeed,
+    setPlaybackSpeed,
+    loadSolution,
+    scrambleMoves,
+  }), [
+    currentView,
+    selectedPuzzle,
+    inputMode,
+    cubeState,
+    selectedColor,
+    activeFace,
+    resetToSolved,
+    clearCube,
+    scrambleCube,
+    applySingleMove,
+    validationResult,
+    runValidation,
+    solutionSteps,
+    activeStepIndex,
+    isPlayingSolution,
+    playbackSpeed,
+    loadSolution,
+    scrambleMoves,
+    setStickerColor,
+    setFaceColors,
+  ]);
+
+  return (
+    <CubeContext.Provider value={value}>
+      {children}
+    </CubeContext.Provider>
+  );
+};
+
+export default CubeProvider;
