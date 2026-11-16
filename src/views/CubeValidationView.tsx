@@ -31,7 +31,8 @@ export const CubeValidationView: React.FC = () => {
     resetToSolved, 
     setView,
     loadSolution,
-    scrambleMoves
+    scrambleMoves,
+    genericPuzzleState
   } = useCube();
 
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
@@ -323,7 +324,12 @@ export const CubeValidationView: React.FC = () => {
                   autoRotateSpeed={0.8}
                 />
               ) : (
-                <PuzzlePreview3D puzzleId={selectedPuzzle} autoRotate={true} className="w-full h-full" />
+                <PuzzlePreview3D 
+                  puzzleId={selectedPuzzle} 
+                  puzzleState={genericPuzzleState}
+                  autoRotate={true} 
+                  className="w-full h-full" 
+                />
               )}
             </div>
 

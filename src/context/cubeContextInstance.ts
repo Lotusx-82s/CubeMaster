@@ -32,6 +32,12 @@ export interface CubeContextType {
   scrambleCube: (length?: number) => string[];
   applySingleMove: (move: string) => void;
   
+  genericPuzzleState: Record<string, (CubeColor | null)[]>;
+  setGenericPuzzleState: React.Dispatch<React.SetStateAction<Record<string, (CubeColor | null)[]>>>;
+  setGenericStickerColor: (faceId: string, index: number, color: CubeColor | null) => void;
+  resetGenericPuzzle: () => void;
+  clearGenericPuzzle: () => void;
+  
   validationResult: ValidationResult | null;
   runValidation: () => ValidationResult;
   

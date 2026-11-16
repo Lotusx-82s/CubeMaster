@@ -17,8 +17,27 @@ import {
   generateScramble 
 } from '../services/cubeState';
 import { validateCubeState3x3 } from '../services/validator';
+import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import { CubeContext } from './cubeContextInstance';
 import type { CubeContextType } from './cubeContextInstance';
+
+function createInitialGenericState(puzzleId: PuzzleTypeId): Record<string, (CubeColor | null)[]> {
+  const def = PUZZLE_DEFINITIONS.find(p => p.id === puzzleId) || PUZZLE_DEFINITIONS[1];
+  const state: Record<string, (CubeColor | null)[]> = {};
+  for (const face of def.faceNames) {
+    state[face.id] = Array(def.stickersPerFace).fill(face.defaultColor);
+  }
+  return state;
+}
+
+function createEmptyGenericState(puzzleId: PuzzleTypeId): Record<string, (CubeColor | null)[]> {
+  const def = PUZZLE_DEFINITIONS.find(p => p.id === puzzleId) || PUZZLE_DEFINITIONS[1];
+  const state: Record<string, (CubeColor | null)[]> = {};
+  for (const face of def.faceNames) {
+    state[face.id] = Array(def.stickersPerFace).fill(null);
+  }
+  return state;
+}
 
 export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentView, setView] = useState<AppView>('home');
@@ -35,6 +54,30 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isPlayingSolution, setIsPlayingSolution] = useState<boolean>(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1000);
   const [scrambleMoves, setScrambleMoves] = useState<string[]>([]);
+
+  const [genericPuzzleState, setGenericPuzzleState] = useState<Record<string, (CubeColor | null)[]>>(() =>
+    createInitialGenericState('3x3')
+  );
+
+  const setGenericStickerColor = useCallback((faceId: string, index: number, color: CubeColor | null) => {
+    setGenericPuzzleState(prev => {
+      const currentFace = prev[faceId] || [];
+      const updated = [...currentFace];
+      updated[index] = color;
+      return {
+        ...prev,
+        [faceId]: updated,
+      };
+    });
+  }, []);
+
+  const resetGenericPuzzle = useCallback(() => {
+    setGenericPuzzleState(createInitialGenericState(selectedPuzzle));
+  }, [selectedPuzzle]);
+
+  const clearGenericPuzzle = useCallback(() => {
+    setGenericPuzzleState(createEmptyGenericState(selectedPuzzle));
+  }, [selectedPuzzle]);
 
   const setStickerColor = useCallback((face: FaceId, index: number, color: CubeColor | null) => {
     setCubeState(prev => {
@@ -118,6 +161,11 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearCube,
     scrambleCube,
     applySingleMove,
+    genericPuzzleState,
+    setGenericPuzzleState,
+    setGenericStickerColor,
+    resetGenericPuzzle,
+    clearGenericPuzzle,
     validationResult,
     runValidation,
     solutionSteps,
@@ -140,6 +188,11 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearCube,
     scrambleCube,
     applySingleMove,
+    genericPuzzleState,
+    setGenericPuzzleState,
+    setGenericStickerColor,
+    resetGenericPuzzle,
+    clearGenericPuzzle,
     validationResult,
     runValidation,
     solutionSteps,
