@@ -90,7 +90,7 @@ export const CubeValidationView: React.FC = () => {
       const result = await solvePuzzle(selectedPuzzle, state);
 
       if (result.success) {
-        loadSolution(result.steps);
+        loadSolution(result.steps, is3x3 ? cubeState : undefined, !is3x3 ? genericPuzzleState : undefined);
         setView('solution');
       } else {
         setSolverError(result.error || `Failed to calculate a valid solution for ${puzzleDef.name}.`);

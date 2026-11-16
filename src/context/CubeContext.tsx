@@ -12,6 +12,7 @@ import type { AppView } from '../types/navigation';
 import { 
   applyMove, 
   applyMoves, 
+  cloneCubeState,
   createEmptyCubeState, 
   createSolvedCubeState, 
   generateScramble 
@@ -45,6 +46,8 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [inputMode, setInputMode] = useState<InputMode>('manual');
   
   const [cubeState, setCubeState] = useState<CubeState3x3>(() => createSolvedCubeState());
+  const [initialCubeState, setInitialCubeState] = useState<CubeState3x3 | null>(null);
+  const [initialGenericState, setInitialGenericState] = useState<Record<string, (CubeColor | null)[]> | null>(null);
   const [selectedColor, setSelectedColor] = useState<CubeColor>('white');
   const [activeFace, setActiveFace] = useState<FaceId>('F');
   
@@ -141,10 +144,18 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return result;
   }, [selectedPuzzle, cubeState, genericPuzzleState]);
 
-  const loadSolution = useCallback((steps: SolutionStep[]) => {
+  const loadSolution = useCallback((steps: SolutionStep[], initial3x3?: CubeState3x3, initialGeneric?: Record<string, (CubeColor | null)[]>) => {
     setSolutionSteps(steps);
     setActiveStepIndex(0);
     setIsPlayingSolution(false);
+    if (initial3x3) {
+      setInitialCubeState(cloneCubeState(initial3x3));
+      setCubeState(cloneCubeState(initial3x3));
+    }
+    if (initialGeneric) {
+      setInitialGenericState({ ...initialGeneric });
+      setGenericPuzzleState({ ...initialGeneric });
+    }
   }, []);
 
   const value = useMemo<CubeContextType>(() => ({
@@ -181,6 +192,8 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     playbackSpeed,
     setPlaybackSpeed,
     loadSolution,
+    initialCubeState,
+    initialGenericState,
     scrambleMoves,
   }), [
     currentView,
@@ -205,6 +218,8 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isPlayingSolution,
     playbackSpeed,
     loadSolution,
+    initialCubeState,
+    initialGenericState,
     scrambleMoves,
     setStickerColor,
     setFaceColors,

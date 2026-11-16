@@ -48,7 +48,9 @@ export interface CubeContextType {
   setIsPlayingSolution: (playing: boolean) => void;
   playbackSpeed: number;
   setPlaybackSpeed: (speed: number) => void;
-  loadSolution: (steps: SolutionStep[]) => void;
+  loadSolution: (steps: SolutionStep[], initial3x3?: CubeState3x3, initialGeneric?: Record<string, (CubeColor | null)[]>) => void;
+  initialCubeState?: CubeState3x3 | null;
+  initialGenericState?: Record<string, (CubeColor | null)[]> | null;
   scrambleMoves: string[];
 }
 

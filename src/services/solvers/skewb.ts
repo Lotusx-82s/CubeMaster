@@ -166,21 +166,22 @@ export class SkewbSolver implements IPuzzleSolver<GenericPuzzleState> {
       };
     }
 
-    // Verify
+    // Verify and record step-by-step state snapshots
     let verifier = cloneSkewb(state);
+    const steps: SolutionStep[] = [];
     for (const m of foundMoves) {
       verifier = applySkewbMove(verifier, m);
+      steps.push({
+        move: m,
+        face: m[0],
+        angle: m.includes("'") ? -90 : 90,
+        description: `Turn Skewb corner axis ${m}`,
+        explanation: `Rotate the ${m[0]} corner-turning axis of the Skewb ${m.includes("'") ? 'counter-clockwise' : 'clockwise'}.`,
+        genericSnapshot: cloneSkewb(verifier),
+      });
     }
 
     const isVerified = isSkewbSolved(verifier);
-
-    const steps: SolutionStep[] = foundMoves.map(m => ({
-      move: m,
-      face: m[0],
-      angle: m.includes("'") ? -90 : 90,
-      description: `Turn Skewb corner axis ${m}`,
-      explanation: `Rotate the ${m[0]} corner-turning axis of the Skewb ${m.includes("'") ? 'counter-clockwise' : 'clockwise'}.`,
-    }));
 
     return {
       success: isVerified,

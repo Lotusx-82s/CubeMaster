@@ -93,6 +93,7 @@ export interface SolutionStep {
   description: string;
   explanation: string;
   stateSnapshot?: CubeState3x3;
+  genericSnapshot?: Record<string, (CubeColor | null)[]>;
 }
 
 export type ValidationCategory =

@@ -1,3 +1,4 @@
+import type { SolutionStep } from '../../types/cube.ts';
 import type { GenericPuzzleState, IPuzzleSolver, SolverResult } from './types.ts';
 
 function clonePyraminx(state: GenericPuzzleState): GenericPuzzleState {
@@ -265,24 +266,38 @@ export class PyraminxSolver implements IPuzzleSolver<GenericPuzzleState> {
 
     const allMoves = [...tipMoves, ...(bodyMoves || [])];
 
-    // Verification step
+    // Verification step and collecting step-by-step state snapshots
     let verifier = clonePyraminx(state);
-    // Apply tips
+    const steps: SolutionStep[] = [];
+
+    // Tip steps
     const afterTips = solveTips(verifier).alignedState;
     verifier = afterTips;
+    for (const tm of tipMoves) {
+      steps.push({
+        move: tm,
+        face: tm[0].toUpperCase(),
+        angle: tm.includes("'") ? -90 : 90,
+        description: `Align Pyraminx tip ${tm}`,
+        explanation: `Rotate tip ${tm[0]} ${tm.includes("'") ? 'counter-clockwise' : 'clockwise'} to match its center.`,
+        genericSnapshot: clonePyraminx(verifier),
+      });
+    }
+
+    // Body steps
     for (const m of (bodyMoves || [])) {
       verifier = applyPyraminxMove(verifier, m);
+      steps.push({
+        move: m,
+        face: m[0].toUpperCase(),
+        angle: m.includes("'") ? -90 : 90,
+        description: `Turn Pyraminx face ${m}`,
+        explanation: `Rotate Pyraminx layer ${m[0].toUpperCase()} ${m.includes("'") ? 'counter-clockwise' : 'clockwise'}.`,
+        genericSnapshot: clonePyraminx(verifier),
+      });
     }
 
     const isVerified = isPyraminxSolved(verifier);
-
-    const steps = allMoves.map(m => ({
-      move: m,
-      face: m[0].toUpperCase(),
-      angle: m.includes("'") ? -90 : 90,
-      description: `Turn Pyraminx ${m}`,
-      explanation: `Rotate Pyraminx face ${m[0].toUpperCase()} ${m.includes("'") ? 'counter-clockwise' : 'clockwise'}.`,
-    }));
 
     return {
       success: isVerified,

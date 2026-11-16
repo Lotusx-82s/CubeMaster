@@ -169,6 +169,41 @@ export function describeMove2x2(move: string): SolutionStep {
   };
 }
 
+export function modelTo2x2GenericState(model: Cube2x2Model): GenericPuzzleState {
+  const state: GenericPuzzleState = {
+    U: Array(4).fill(null),
+    D: Array(4).fill(null),
+    F: Array(4).fill(null),
+    B: Array(4).fill(null),
+    R: Array(4).fill(null),
+    L: Array(4).fill(null),
+  };
+
+  for (let slotIdx = 0; slotIdx < CORNERS_2X2.length; slotIdx++) {
+    const slotDef = CORNERS_2X2[slotIdx];
+    const [f1, i1, f2, i2, f3, i3] = slotDef.slots;
+    const pieceIdx = model.cp[slotIdx];
+    const twist = model.co[slotIdx];
+    const [c1, c2, c3] = CORNERS_2X2[pieceIdx].colors;
+
+    if (twist === 0) {
+      state[f1][i1] = c1;
+      state[f2][i2] = c2;
+      state[f3][i3] = c3;
+    } else if (twist === 1) {
+      state[f1][i1] = c3;
+      state[f2][i2] = c1;
+      state[f3][i3] = c2;
+    } else {
+      state[f1][i1] = c2;
+      state[f2][i2] = c3;
+      state[f3][i3] = c1;
+    }
+  }
+
+  return state;
+}
+
 export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
   id = 'bfs-ortega-2x2';
   name = 'CubeMaster 2×2 Optimal BFS Solver';
@@ -304,10 +339,15 @@ export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
       };
     }
 
-    // 4. Verify solution by simulating on model
+    // 4. Verify solution by simulating on model and collecting snapshots
     let verifier = startModel.clone();
+    const steps: SolutionStep[] = [];
     for (const m of foundMoves) {
       verifier = verifier.move(m);
+      steps.push({
+        ...describeMove2x2(m),
+        genericSnapshot: modelTo2x2GenericState(verifier),
+      });
     }
 
     if (!verifier.isSolved()) {
@@ -322,8 +362,6 @@ export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
         error: 'Verification error: Generated solution does not solve the 2×2 cube.',
       };
     }
-
-    const steps = foundMoves.map(describeMove2x2);
 
     return {
       success: true,
