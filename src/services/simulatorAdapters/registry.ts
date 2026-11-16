@@ -2,11 +2,13 @@ import type { SimulatorAdapter, SimulatorParseResult } from './types';
 import { algCubingNetAdapter } from './algCubingNetAdapter';
 import { cubeDbAdapter } from './cubeDbAdapter';
 import { cubeMasterAdapter } from './cubeMasterAdapter';
+import { rubiksCubeAdapter } from './rubiksCubeAdapter';
 
 // Whitelist registry of approved simulators
 export const SIMULATOR_ADAPTERS: SimulatorAdapter[] = [
   algCubingNetAdapter,
   cubeDbAdapter,
+  rubiksCubeAdapter,
   cubeMasterAdapter,
 ];
 

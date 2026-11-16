@@ -26,12 +26,17 @@ import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 
 const EXAMPLE_URLS = [
   {
+    name: 'RubiksCu.be Scramble',
+    url: 'https://rubikscu.be/?scramble=R_U_R-_U-_F2_D_L2_B-',
+    badge: 'RubiksCu.be',
+  },
+  {
     name: 'Alg.cubing.net (WCA Scramble)',
     url: 'https://alg.cubing.net/?setup=R_U_R-_U-_F2_D_L2_B-&puzzle=3x3x3',
     badge: 'Popular',
   },
   {
-    name: 'Alg.cubing.net (Superflip Pattern)',
+    name: 'Alg.cubing.net (Superflip)',
     url: 'https://alg.cubing.net/?setup=U_R2_F_B_R_B2_R_U2_L_B2_R_U-_D-_R2_F_R-_L_B2_U2_F2&puzzle=3x3x3',
     badge: '20-Move Superflip',
   },
