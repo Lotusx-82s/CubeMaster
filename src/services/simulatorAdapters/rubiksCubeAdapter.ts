@@ -1,52 +1,7 @@
-import type { CubeColor, CubeState3x3, FaceId, PuzzleTypeId } from '../../types/cube';
+import type { PuzzleTypeId } from '../../types/cube';
 import type { SimulatorAdapter, SimulatorParseResult } from './types';
-import { normalizeMoveSequence, reconstructAndValidate3x3State } from './moveNormalizer';
+import { normalizeMoveSequence, reconstructAndValidate3x3State, parseFaceletString } from './moveNormalizer';
 import { validateCubeState3x3 } from '../validator';
-
-const COLOR_MAP: Record<string, CubeColor> = {
-  U: 'white',
-  W: 'white',
-  WHITE: 'white',
-  R: 'red',
-  RED: 'red',
-  F: 'green',
-  G: 'green',
-  GREEN: 'green',
-  D: 'yellow',
-  Y: 'yellow',
-  YELLOW: 'yellow',
-  L: 'orange',
-  O: 'orange',
-  ORANGE: 'orange',
-  B: 'blue',
-  BLUE: 'blue',
-};
-
-// Check if string is a 54-facelet state representation (e.g. UUUUUUUUURRRRRRRRR...)
-function parseFaceletString(str: string): CubeState3x3 | null {
-  const cleaned = str.replace(/[^A-Za-z]/g, '').toUpperCase();
-  if (cleaned.length !== 54) return null;
-
-  const faces: FaceId[] = ['U', 'R', 'F', 'D', 'L', 'B'];
-  const state: Partial<CubeState3x3> = {};
-
-  for (let f = 0; f < 6; f++) {
-    const faceId = faces[f];
-    const segment = cleaned.slice(f * 9, f * 9 + 9);
-    const colors: (CubeColor | null)[] = [];
-
-    for (let i = 0; i < 9; i++) {
-      const char = segment[i];
-      const color = COLOR_MAP[char];
-      if (!color) return null;
-      colors.push(color);
-    }
-
-    state[faceId] = colors;
-  }
-
-  return state as CubeState3x3;
-}
 
 // Extract parameter from searchParams or hash
 function extractParam(url: URL, paramNames: string[]): string | null {
@@ -93,8 +48,20 @@ export const rubiksCubeAdapter: SimulatorAdapter = {
     else if (rawPuzzle.includes('4')) puzzleType = '4x4';
     else puzzleType = '3x3';
 
-    // 2. Extract scramble, alg, moves, or state
-    const rawMovesOrState = extractParam(url, ['scramble', 'moves', 'alg', 'setup', 'state', 'pattern', 's']);
+    // 2. Extract scramble, alg, moves, or 54-facelet state
+    const rawMovesOrState = extractParam(url, [
+      'f',
+      'facelets',
+      'scramble',
+      'moves',
+      'alg',
+      'setup',
+      'state',
+      'pattern',
+      's',
+      'stickers',
+      'cube',
+    ]);
 
     if (!rawMovesOrState) {
       return {
@@ -102,11 +69,11 @@ export const rubiksCubeAdapter: SimulatorAdapter = {
         simulatorName: this.name,
         puzzleType,
         errorCode: 'NO_CUBE_STATE_FOUND',
-        error: `RubiksCu.be / Ruwix link recognized, but no scramble parameter was found in this link. On RubiksCu.be, click 'Share' to generate a link containing '?scramble=...' or append a move sequence like '?scramble=R_U_R-_U-'.`,
+        error: `RubiksCu.be / Ruwix link recognized, but no scramble parameter ('?scramble=...') or facelet parameter ('?f=...') was found. On RubiksCu.be, click 'Share' to generate a link or append '?scramble=...' or '?f=...'.`,
       };
     }
 
-    // 3. Check if it's a 54-facelet string representation
+    // 3. Check if it's a 54-facelet string representation (e.g. rubikscu.be/play/?f=...)
     if (puzzleType === '3x3' && rawMovesOrState.length >= 54) {
       const faceletState = parseFaceletString(rawMovesOrState);
       if (faceletState) {
@@ -120,7 +87,16 @@ export const rubiksCubeAdapter: SimulatorAdapter = {
             metadata: {
               rawParam: rawMovesOrState,
               description: 'Extracted 54-facelet physical color state from RubiksCu.be',
+              moveCount: 0,
             },
+          };
+        } else {
+          return {
+            success: false,
+            simulatorName: this.name,
+            puzzleType: '3x3',
+            errorCode: 'INVALID_CUBE_CONFIGURATION',
+            error: `54-facelet configuration found but failed physical validation: ${validation.issues.map(i => i.message).join('; ')}`,
           };
         }
       }

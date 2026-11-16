@@ -1,4 +1,4 @@
-import type { CubeState3x3 } from '../../types/cube';
+import type { CubeColor, CubeState3x3, FaceId } from '../../types/cube';
 import { createSolvedCubeState, applyMoves } from '../cubeState';
 import { validateCubeState3x3 } from '../validator';
 
@@ -11,6 +11,55 @@ const VALID_3X3_MOVES = new Set([
   'R', "R'", 'R2',
   'L', "L'", 'L2',
 ]);
+
+const COLOR_MAP: Record<string, CubeColor> = {
+  U: 'white',
+  W: 'white',
+  WHITE: 'white',
+  R: 'red',
+  RED: 'red',
+  F: 'green',
+  G: 'green',
+  GREEN: 'green',
+  D: 'yellow',
+  Y: 'yellow',
+  YELLOW: 'yellow',
+  L: 'orange',
+  O: 'orange',
+  ORANGE: 'orange',
+  B: 'blue',
+  BLUE: 'blue',
+};
+
+/**
+ * Checks if a string represents a 54-facelet state (e.g. UUUUUUUUURRRRRRRRR... or DDFRUUFDRBLLDRULFF...)
+ * in standard U, R, F, D, L, B order (used by rubikscu.be, ruwix, kociemba).
+ */
+export function parseFaceletString(str: string): CubeState3x3 | null {
+  if (!str) return null;
+  const cleaned = decodeURIComponent(str).replace(/[^A-Za-z]/g, '').toUpperCase();
+  if (cleaned.length !== 54) return null;
+
+  const faces: FaceId[] = ['U', 'R', 'F', 'D', 'L', 'B'];
+  const state: Partial<CubeState3x3> = {};
+
+  for (let f = 0; f < 6; f++) {
+    const faceId = faces[f];
+    const segment = cleaned.slice(f * 9, f * 9 + 9);
+    const colors: (CubeColor | null)[] = [];
+
+    for (let i = 0; i < 9; i++) {
+      const char = segment[i];
+      const color = COLOR_MAP[char];
+      if (!color) return null;
+      colors.push(color);
+    }
+
+    state[faceId] = colors;
+  }
+
+  return state as CubeState3x3;
+}
 
 /**
  * Normalizes a raw move sequence string extracted from URL query parameters.

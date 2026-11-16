@@ -26,6 +26,11 @@ import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 
 const EXAMPLE_URLS = [
   {
+    name: 'RubiksCu.be 54-Facelet State',
+    url: 'https://rubikscu.be/play/?f=DDFRUUFDRBLLDRULFFUFDRFLLBUUUBBDRRUDBBRFLDBLFDBLRBLRFU',
+    badge: '54 Facelets',
+  },
+  {
     name: 'RubiksCu.be Scramble',
     url: 'https://rubikscu.be/?scramble=R_U_R-_U-_F2_D_L2_B-',
     badge: 'RubiksCu.be',
