@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -10,7 +10,8 @@ import {
   Camera,
   Sparkles, 
   Info, 
-  Layers 
+  Layers,
+  Loader2
 } from 'lucide-react';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
@@ -19,7 +20,7 @@ import { CUBE_COLORS } from '../types/cube';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
 import PageHeader from '../components/common/PageHeader';
-import { parseMoveToStep } from '../services/solvers/rubiks3x3';
+import { solvePuzzle } from '../services/solvers';
 
 const CATEGORY_STYLES: Record<ValidationCategory, { label: string; badgeClass: string }> = {
   MISSING_STICKERS: {
@@ -59,9 +60,11 @@ export const CubeValidationView: React.FC = () => {
     setView,
     setActiveFace,
     loadSolution,
-    scrambleMoves,
     genericPuzzleState
   } = useCube();
+
+  const [isSolving, setIsSolving] = useState(false);
+  const [solverError, setSolverError] = useState<string | null>(null);
 
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
   const is3x3 = selectedPuzzle === '3x3';
@@ -76,20 +79,27 @@ export const CubeValidationView: React.FC = () => {
   const colorCounts = validationResult?.colorCounts ?? {};
   const targetPerColor = puzzleDef.totalStickers / puzzleDef.colorSet.length;
 
-  const handleProceedToSolution = () => {
-    if (!is3x3 || !isValid) return;
+  const handleProceedToSolution = async () => {
+    if (!isValid || isSolving) return;
 
-    if (scrambleMoves && scrambleMoves.length > 0) {
-      const solution = [...scrambleMoves].reverse().map(m => {
-        if (m.includes("'")) return m.replace("'", "");
-        if (m.includes("2")) return m;
-        return `${m}'`;
-      });
-      loadSolution(solution.map(parseMoveToStep));
-    } else {
-      loadSolution([]);
+    setIsSolving(true);
+    setSolverError(null);
+
+    try {
+      const state = is3x3 ? cubeState : genericPuzzleState;
+      const result = await solvePuzzle(selectedPuzzle, state);
+
+      if (result.success) {
+        loadSolution(result.steps);
+        setView('solution');
+      } else {
+        setSolverError(result.error || `Failed to calculate a valid solution for ${puzzleDef.name}.`);
+      }
+    } catch (err: unknown) {
+      setSolverError(err instanceof Error ? err.message : 'Unknown solver error occurred during search.');
+    } finally {
+      setIsSolving(false);
     }
-    setView('solution');
   };
 
   const handleEditFace = (faceId?: string) => {
@@ -162,14 +172,24 @@ export const CubeValidationView: React.FC = () => {
 
           <div className="flex items-center gap-3 shrink-0">
             {isValid ? (
-              is3x3 ? (
+              puzzleDef.supported ? (
                 <button
                   onClick={handleProceedToSolution}
-                  className="py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
+                  disabled={isSolving}
+                  className="py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Launch 3D Solution</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isSolving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Solving {puzzleDef.name}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Launch 3D Solution</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -209,6 +229,14 @@ export const CubeValidationView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Solver Calculation Error Banner */}
+      {solverError && (
+        <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-3 mb-8">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span className="font-medium">{solverError}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Diagnostics breakdown */}

@@ -21,8 +21,8 @@ import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
 import PageHeader from '../components/common/PageHeader';
-import { isCubeSolved } from '../services/cubeState';
-import { parseMoveToStep } from '../services/solvers/rubiks3x3';
+import { isCubeSolved, createSolvedCubeState, applyMoves } from '../services/cubeState';
+import { solvePuzzle } from '../services/solvers';
 import type { SolutionStep } from '../types/cube';
 
 export const SolutionView: React.FC = () => {
@@ -45,8 +45,8 @@ export const SolutionView: React.FC = () => {
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
   const is3x3 = selectedPuzzle === '3x3';
 
-  const isSolved = is3x3 ? isCubeSolved(cubeState) : false;
   const totalSteps = solutionSteps.length;
+  const isSolved = is3x3 ? isCubeSolved(cubeState) : (totalSteps > 0 && activeStepIndex >= totalSteps);
   const currentStep = totalSteps > 0 && activeStepIndex < totalSteps ? solutionSteps[activeStepIndex] : null;
 
   const invertMove = (move: string): string => {
@@ -69,15 +69,17 @@ export const SolutionView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isSolved && is3x3) {
+    if (isSolved) {
       triggerCelebration();
     }
-  }, [isSolved, is3x3]);
+  }, [isSolved]);
 
   const handleNextStep = () => {
     if (activeStepIndex < totalSteps) {
       const step = solutionSteps[activeStepIndex];
-      applySingleMove(step.move);
+      if (is3x3) {
+        applySingleMove(step.move);
+      }
       const nextIndex = activeStepIndex + 1;
       setActiveStepIndex(nextIndex);
       if (nextIndex === totalSteps) {
@@ -90,30 +92,36 @@ export const SolutionView: React.FC = () => {
   const handlePrevStep = () => {
     if (activeStepIndex > 0) {
       const prevStep = solutionSteps[activeStepIndex - 1];
-      const inverted = invertMove(prevStep.move);
-      applySingleMove(inverted);
+      if (is3x3) {
+        const inverted = invertMove(prevStep.move);
+        applySingleMove(inverted);
+      }
       setActiveStepIndex(activeStepIndex - 1);
     }
   };
 
   const handleResetPlayback = () => {
     setIsPlayingSolution(false);
-    let currIdx = activeStepIndex;
-    while (currIdx > 0) {
-      const step = solutionSteps[currIdx - 1];
-      applySingleMove(invertMove(step.move));
-      currIdx--;
+    if (is3x3) {
+      let currIdx = activeStepIndex;
+      while (currIdx > 0) {
+        const step = solutionSteps[currIdx - 1];
+        applySingleMove(invertMove(step.move));
+        currIdx--;
+      }
     }
     setActiveStepIndex(0);
   };
 
   useEffect(() => {
     let interval: any = null;
-    if (isPlayingSolution && is3x3) {
+    if (isPlayingSolution) {
       interval = setInterval(() => {
         if (activeStepIndex < totalSteps) {
           const step = solutionSteps[activeStepIndex];
-          applySingleMove(step.move);
+          if (is3x3) {
+            applySingleMove(step.move);
+          }
           setActiveStepIndex((prev: number) => {
             const next = prev + 1;
             if (next >= totalSteps) {
@@ -133,12 +141,15 @@ export const SolutionView: React.FC = () => {
     };
   }, [isPlayingSolution, is3x3, activeStepIndex, totalSteps, playbackSpeed, solutionSteps, applySingleMove, setActiveStepIndex, setIsPlayingSolution]);
 
-  const handleScrambleAndSolve = () => {
+  const handleScrambleAndSolve = async () => {
     if (!is3x3) return;
     setIsPlayingSolution(false);
-    const moves = scrambleCube(12);
-    const solutionMoves = [...moves].reverse().map(invertMove);
-    loadSolution(solutionMoves.map(parseMoveToStep));
+    const moves = scrambleCube(16);
+    const scrambledState = applyMoves(createSolvedCubeState(), moves);
+    const result = await solvePuzzle('3x3', scrambledState);
+    if (result.success) {
+      loadSolution(result.steps);
+    }
   };
 
   return (
@@ -234,8 +245,8 @@ export const SolutionView: React.FC = () => {
             )}
           </div>
 
-          {/* Scrubber / Step Timeline for 3x3 */}
-          {is3x3 && totalSteps > 0 && (
+          {/* Scrubber / Step Timeline for Solved Moves */}
+          {totalSteps > 0 && (
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span className="font-semibold text-slate-200">Solution Timeline</span>
@@ -252,13 +263,15 @@ export const SolutionView: React.FC = () => {
                       key={idx}
                       onClick={() => {
                         setIsPlayingSolution(false);
-                        if (idx > activeStepIndex) {
-                          for (let i = activeStepIndex; i < idx; i++) {
-                            applySingleMove(solutionSteps[i].move);
-                          }
-                        } else if (idx < activeStepIndex) {
-                          for (let i = activeStepIndex - 1; i >= idx; i--) {
-                            applySingleMove(invertMove(solutionSteps[i].move));
+                        if (is3x3) {
+                          if (idx > activeStepIndex) {
+                            for (let i = activeStepIndex; i < idx; i++) {
+                              applySingleMove(solutionSteps[i].move);
+                            }
+                          } else if (idx < activeStepIndex) {
+                            for (let i = activeStepIndex - 1; i >= idx; i--) {
+                              applySingleMove(invertMove(solutionSteps[i].move));
+                            }
                           }
                         }
                         setActiveStepIndex(idx);
@@ -288,11 +301,11 @@ export const SolutionView: React.FC = () => {
                 Current Move Instruction
               </span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                {is3x3 && totalSteps > 0 ? `Step ${Math.min(activeStepIndex + 1, totalSteps)} / ${totalSteps}` : 'Ready'}
+                {totalSteps > 0 ? `Step ${Math.min(activeStepIndex + 1, totalSteps)} / ${totalSteps}` : 'Ready'}
               </span>
             </div>
 
-            {is3x3 && currentStep ? (
+            {currentStep ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-cyan-500/20">
@@ -315,7 +328,7 @@ export const SolutionView: React.FC = () => {
                   />
                 </div>
               </div>
-            ) : is3x3 && isSolved ? (
+            ) : isSolved ? (
               <div className="text-center py-6 space-y-2">
                 <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
                 <h4 className="text-lg font-bold text-white">Solved State Reached!</h4>
@@ -342,7 +355,7 @@ export const SolutionView: React.FC = () => {
               </div>
             )}
 
-            {is3x3 && totalSteps > 0 && (
+            {totalSteps > 0 && (
               <div className="pt-4 border-t border-slate-800 space-y-4">
                 <div className="flex items-center justify-center gap-3">
                   <button
