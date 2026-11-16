@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { 
   Play, 
   Pause, 
@@ -16,15 +16,29 @@ import {
   ArrowRight,
   ShieldCheck,
   Zap,
-  Gauge
+  Clock,
+  Copy,
+  Check,
+  FileText,
+  FileDown,
+  Eye,
+  Layers,
+  Undo2,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import PageHeader from '../components/common/PageHeader';
-import { isCubeSolved, createSolvedCubeState, applyMoves } from '../services/cubeState';
+import { isCubeSolved, createSolvedCubeState, applyMoves, cloneCubeState } from '../services/cubeState';
 import { solvePuzzle } from '../services/solvers';
 import InteractivePuzzle3D, { type AnimatingMove } from '../components/3d/InteractivePuzzle3D';
+import { 
+  calculateEstimatedTime, 
+  formatSolutionString, 
+  downloadSolutionAsTXT, 
+  downloadSolutionAsPDF 
+} from '../services/solutionExport';
 import type { CubeColor } from '../types/cube';
 
 type SpeedPreset = 'slow' | 'normal' | 'fast';
@@ -65,17 +79,33 @@ export const SolutionView: React.FC = () => {
     loadSolution,
     initialCubeState,
     initialGenericState,
+    scrambleMoves,
+    setView,
   } = useCube();
 
   const [speedPreset, setSpeedPreset] = useState<SpeedPreset>('normal');
   const [animatingMove, setAnimatingMove] = useState<AnimatingMove | null>(null);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [showOriginalScramble, setShowOriginalScramble] = useState<boolean>(false);
   const activeTimelineRef = useRef<HTMLButtonElement>(null);
 
   const puzzleDef = PUZZLE_DEFINITIONS.find((p) => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
   const is3x3 = selectedPuzzle === '3x3';
   const totalSteps = solutionSteps.length;
 
-  // Determine whether the current state is mathematically solved
+  // Compute estimated manual solving time (clearly labeled as an estimate)
+  const estimatedTime = useMemo(
+    () => calculateEstimatedTime(totalSteps, selectedPuzzle),
+    [totalSteps, selectedPuzzle]
+  );
+
+  // Formatted solution string in standard Singmaster notation: e.g. "R U R' U' F2 D L2 U'"
+  const formattedSolution = useMemo(
+    () => formatSolutionString(solutionSteps),
+    [solutionSteps]
+  );
+
+  // Check if current state in 3D viewport is mathematically solved
   const isSolved = is3x3
     ? isCubeSolved(cubeState)
     : (activeStepIndex >= totalSteps && totalSteps > 0 && isGenericStateSolved(genericPuzzleState));
@@ -85,8 +115,8 @@ export const SolutionView: React.FC = () => {
   const triggerCelebration = useCallback(() => {
     try {
       confetti({
-        particleCount: 85,
-        spread: 75,
+        particleCount: 90,
+        spread: 80,
         origin: { y: 0.6 },
         colors: ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ffffff'],
       });
@@ -95,14 +125,14 @@ export const SolutionView: React.FC = () => {
     }
   }, []);
 
-  // Trigger celebration upon entering solved state
+  // Trigger celebration on completing the final move
   useEffect(() => {
     if (isSolved && totalSteps > 0 && activeStepIndex === totalSteps) {
       triggerCelebration();
     }
   }, [isSolved, totalSteps, activeStepIndex, triggerCelebration]);
 
-  // Ensure initial snapshot is preserved if not already set
+  // Preserve initial state snapshot in CubeContext if not already recorded
   useEffect(() => {
     if (!initialCubeState && is3x3 && cubeState) {
       loadSolution(solutionSteps, cubeState);
@@ -111,7 +141,20 @@ export const SolutionView: React.FC = () => {
     }
   }, [initialCubeState, initialGenericState, is3x3, cubeState, genericPuzzleState, loadSolution, solutionSteps]);
 
-  // Auto-scroll timeline to keep active move visible
+  // Cleanly restore the original puzzle state when navigating back to editing or validation
+  const handleNavigateBack = useCallback((targetView: 'validate' | 'manual' = 'validate') => {
+    setIsPlayingSolution(false);
+    setAnimatingMove(null);
+    if (is3x3 && initialCubeState) {
+      setCubeState(cloneCubeState(initialCubeState));
+    }
+    if (!is3x3 && initialGenericState) {
+      setGenericPuzzleState({ ...initialGenericState });
+    }
+    setView(targetView);
+  }, [is3x3, initialCubeState, initialGenericState, setCubeState, setGenericPuzzleState, setView, setIsPlayingSolution]);
+
+  // Auto-scroll timeline to keep active step centered
   useEffect(() => {
     if (activeTimelineRef.current) {
       activeTimelineRef.current.scrollIntoView({
@@ -122,7 +165,7 @@ export const SolutionView: React.FC = () => {
     }
   }, [activeStepIndex]);
 
-  // Execute Next Move with smooth layer rotation
+  // Execute Next Move with smooth 3D layer rotation
   const handleNextStep = useCallback(() => {
     if (animatingMove !== null || activeStepIndex >= totalSteps) return;
 
@@ -164,7 +207,7 @@ export const SolutionView: React.FC = () => {
     triggerCelebration,
   ]);
 
-  // Execute Previous Move in reverse layer rotation
+  // Execute Previous Move in reverse 3D layer rotation
   const handlePrevStep = useCallback(() => {
     if (animatingMove !== null || activeStepIndex <= 0) return;
 
@@ -203,7 +246,7 @@ export const SolutionView: React.FC = () => {
     setActiveStepIndex,
   ]);
 
-  // Restart playback to step 0
+  // Restart playback to step 0 (initial scrambled state)
   const handleRestart = useCallback(() => {
     setIsPlayingSolution(false);
     setAnimatingMove(null);
@@ -220,7 +263,7 @@ export const SolutionView: React.FC = () => {
     setIsPlayingSolution,
   ]);
 
-  // Jump to a specific step in the sequence
+  // Jump to any move in the solution
   const handleJumpToStep = useCallback((targetIndex: number) => {
     setIsPlayingSolution(false);
     setAnimatingMove(null);
@@ -249,13 +292,13 @@ export const SolutionView: React.FC = () => {
   const handleSolveAutomatically = useCallback(() => {
     if (activeStepIndex >= totalSteps) {
       handleRestart();
-      setTimeout(() => setIsPlayingSolution(true), 80);
+      setTimeout(() => setIsPlayingSolution(true), 100);
     } else {
       setIsPlayingSolution(true);
     }
   }, [activeStepIndex, totalSteps, handleRestart, setIsPlayingSolution]);
 
-  // Auto-play loop driven by state transitions
+  // Auto-play state transition effect
   useEffect(() => {
     if (!isPlayingSolution || animatingMove !== null) return;
 
@@ -269,7 +312,36 @@ export const SolutionView: React.FC = () => {
     }
   }, [isPlayingSolution, animatingMove, activeStepIndex, totalSteps, speedPreset, handleNextStep, setIsPlayingSolution]);
 
-  // Scramble and Solve Demo (uses Herbert Kociemba Two-Phase engine)
+  // Copy Solution to Clipboard
+  const handleCopySolution = async () => {
+    if (!formattedSolution) return;
+    try {
+      await navigator.clipboard.writeText(formattedSolution);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2200);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = formattedSolution;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2200);
+    }
+  };
+
+  // Download TXT
+  const handleDownloadTXT = () => {
+    downloadSolutionAsTXT(puzzleDef, solutionSteps, scrambleMoves);
+  };
+
+  // Download PDF
+  const handleDownloadPDF = () => {
+    downloadSolutionAsPDF(puzzleDef, solutionSteps, scrambleMoves);
+  };
+
+  // Demo Scramble and Solve (3x3 Kociemba Two-Phase)
   const handleScrambleAndSolve = async () => {
     if (!is3x3) return;
     setIsPlayingSolution(false);
@@ -284,25 +356,36 @@ export const SolutionView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
+      {/* Header */}
       <PageHeader
-        title={`Interactive 3D Solution Visualizer • ${puzzleDef.name}`}
-        subtitle={`Real-time 3D layer animation with Singmaster notation explanations, scrubber timeline, and orbital drag controls.`}
+        title={`Solution Dashboard • ${puzzleDef.name}`}
+        subtitle="Complete verified solution in standard Singmaster notation with synchronized 3D layer animation and export utilities."
         badge={puzzleDef.dimensionsLabel}
         backTo="validate"
         actions={
-          is3x3 ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleScrambleAndSolve}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 transition-colors cursor-pointer flex items-center gap-2 shadow-md hover:border-cyan-500/40"
+              onClick={() => handleNavigateBack('validate')}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              title="Return to integrity validation while preserving original scramble"
             >
-              <Shuffle className="w-3.5 h-3.5 text-amber-400" />
-              <span>New Demo Scramble & Solve</span>
+              <Undo2 className="w-3.5 h-3.5 text-slate-400" />
+              <span>Back to Validation</span>
             </button>
-          ) : undefined
+            {is3x3 && (
+              <button
+                onClick={handleScrambleAndSolve}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md hover:border-cyan-500/40"
+              >
+                <Shuffle className="w-3.5 h-3.5 text-amber-400" />
+                <span>New Demo Scramble</span>
+              </button>
+            )}
+          </div>
         }
       />
 
-      {/* Unsupported Puzzle Notice */}
+      {/* Unsupported Puzzle Banner */}
       {!puzzleDef.supported && (
         <div className="p-8 rounded-3xl bg-slate-900/80 border-2 border-amber-500/40 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
@@ -333,7 +416,7 @@ export const SolutionView: React.FC = () => {
         </div>
       )}
 
-      {/* Solved celebration banner */}
+      {/* Verified Solved Completion Banner */}
       {isSolved && totalSteps > 0 && activeStepIndex === totalSteps && (
         <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/40 border border-emerald-500/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-center sm:text-left">
@@ -345,7 +428,7 @@ export const SolutionView: React.FC = () => {
                 <h3 className="text-xl font-extrabold text-white">
                   Puzzle Solved & Mathematically Verified!
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   VERIFIED STATE
                 </span>
               </div>
@@ -365,36 +448,237 @@ export const SolutionView: React.FC = () => {
         </div>
       )}
 
-      {/* Main 3D Viewport & Side Control Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: 3D Animated Canvas with Scrubber */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="h-[460px] sm:h-[500px] w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80">
-            <InteractivePuzzle3D
-              puzzleId={selectedPuzzle}
-              cubeState={cubeState}
-              genericPuzzleState={genericPuzzleState}
-              animatingMove={animatingMove}
-              className="w-full h-full"
-            />
+      {/* Top Metrics Row: Total Moves, Move Progress, Estimated Time */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Metric 1: Total Moves */}
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+            <Zap className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Total Moves
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-2xl font-black text-white font-mono">{totalSteps}</span>
+              <span className="text-xs text-cyan-400 font-semibold">moves</span>
+            </div>
+            <p className="text-[11px] text-slate-400 truncate mt-0.5">
+              {puzzleDef.algorithmSupport}
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 2: Current Move Progress */}
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Current Move Progress
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-2xl font-black text-white font-mono">
+                {activeStepIndex} <span className="text-sm font-normal text-slate-500">/ {totalSteps}</span>
+              </span>
+              <span className="text-xs text-emerald-400 font-semibold font-mono">
+                {totalSteps > 0 ? Math.round((activeStepIndex / totalSteps) * 100) : 100}%
+              </span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300"
+                style={{ width: `${totalSteps > 0 ? (activeStepIndex / totalSteps) * 100 : 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 3: Estimated Solving Time (Clearly Labeled as an Estimate) */}
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+                Estimated Solving Time
+              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                ESTIMATE
+              </span>
+            </div>
+            <div className="text-xl font-black text-white mt-0.5">
+              {estimatedTime.summary.split(' ')[0]}
+              <span className="text-xs font-normal text-slate-400 ml-1.5">seconds</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+              Speed: {estimatedTime.speedcuber} • Normal: {estimatedTime.intermediate}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* TEXT SOLUTION BAR & ACTIONS */}
+      <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-cyan-400" />
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                Text Solution (Standard Notation)
+              </h4>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Click any move token to inspect its 3D layer rotation or jump directly to that state.
+            </p>
           </div>
 
-          {/* Interactive Move Sequence Filmstrip (Scrubber) */}
+          {/* Action Buttons: Copy, Download TXT, Download PDF */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleCopySolution}
+              disabled={totalSteps === 0}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+              title="Copy complete move sequence to clipboard"
+            >
+              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-cyan-400" />}
+              <span>{isCopied ? 'Copied!' : 'Copy Solution'}</span>
+            </button>
+
+            <button
+              onClick={handleDownloadTXT}
+              disabled={totalSteps === 0}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+              title="Download solution instructions as a structured TXT file"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-400" />
+              <span>Download TXT</span>
+            </button>
+
+            <button
+              onClick={handleDownloadPDF}
+              disabled={totalSteps === 0}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+              title="Download print-ready PDF solution guide"
+            >
+              <FileDown className="w-3.5 h-3.5 text-white" />
+              <span>Download PDF</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Clickable Move Sequence String */}
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-x-auto scrollbar-thin">
+          {totalSteps > 0 ? (
+            <div className="flex items-center gap-2 flex-wrap font-mono text-sm leading-relaxed">
+              {solutionSteps.map((step, idx) => {
+                const stepNum = idx + 1;
+                const isCurrent = activeStepIndex === stepNum;
+                const isPassed = activeStepIndex > stepNum;
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleJumpToStep(stepNum)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isCurrent
+                        ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/40 scale-110 font-black'
+                        : isPassed
+                        ? 'bg-emerald-950/30 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-950/50'
+                        : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-600 hover:text-white'
+                    }`}
+                    title={`Move #${stepNum}: ${step.move} (${step.description})`}
+                  >
+                    {step.move}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 italic py-1">
+              No solution moves loaded. (Cube is already solved or waiting for input).
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main 3D Interactive Visualization & Step Guide */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: 3D Animated Canvas with Timeline */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* 3D Model Card */}
+          <div className="h-[460px] sm:h-[500px] w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80 relative">
+            <InteractivePuzzle3D
+              puzzleId={selectedPuzzle}
+              cubeState={showOriginalScramble && initialCubeState ? initialCubeState : cubeState}
+              genericPuzzleState={showOriginalScramble && initialGenericState ? initialGenericState : genericPuzzleState}
+              animatingMove={showOriginalScramble ? null : animatingMove}
+              className="w-full h-full"
+            />
+
+            {/* Toggle between Original Scramble and Live 3D Model */}
+            <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md p-1 rounded-2xl border border-slate-700/60 shadow-xl">
+              <button
+                onClick={() => setShowOriginalScramble(false)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  !showOriginalScramble
+                    ? 'bg-cyan-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Live 3D Solution</span>
+              </button>
+
+              <button
+                onClick={() => setShowOriginalScramble(true)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  showOriginalScramble
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="View original scrambled puzzle state"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Original Scramble</span>
+              </button>
+            </div>
+
+            {/* Scramble Notice Overlay if viewing original */}
+            {showOriginalScramble && (
+              <div className="absolute bottom-14 left-4 right-4 bg-amber-950/80 backdrop-blur-md border border-amber-500/40 p-3 rounded-2xl text-xs text-amber-200 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Viewing Original Scrambled Puzzle State. Click "Live 3D Solution" to resume playback.</span>
+                </span>
+                <button
+                  onClick={() => setShowOriginalScramble(false)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-[11px] cursor-pointer"
+                >
+                  Return to Playback
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive Move Sequence Filmstrip */}
           {totalSteps > 0 && (
             <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Gauge className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Interactive Move Sequence</span>
+                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Move Sequence Scrubber</span>
                 </span>
                 <span className="font-mono text-cyan-400 font-bold">
-                  Step {activeStepIndex} / {totalSteps} ({Math.max(0, totalSteps - activeStepIndex)} remaining)
+                  Step {activeStepIndex} / {totalSteps}
                 </span>
               </div>
 
-              {/* Scrollable Move Pills */}
+              {/* Scrollable Timeline */}
               <div className="flex items-center gap-2 overflow-x-auto py-2.5 px-1 scrollbar-thin">
-                {/* Step 0 (Start state) */}
+                {/* Step 0: Initial Start State */}
                 <button
                   onClick={() => handleJumpToStep(0)}
                   className={`px-3 py-2 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -402,7 +686,7 @@ export const SolutionView: React.FC = () => {
                       ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30 scale-105'
                       : 'bg-slate-950/70 text-slate-400 border border-slate-800 hover:text-slate-200'
                   }`}
-                  title="Jump to initial scrambled state"
+                  title="Jump to initial start state"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Start</span>
@@ -438,20 +722,20 @@ export const SolutionView: React.FC = () => {
           )}
         </div>
 
-        {/* Right: Controls & Move Explanation Studio */}
+        {/* Right Column: Step-by-Step Instructions & Playback Controls */}
         <div className="lg:col-span-5 space-y-6">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Compass className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Move Instruction Studio</span>
+                <span>Step-by-Step Instruction</span>
               </span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">
-                {totalSteps > 0 ? `Move ${Math.min(activeStepIndex + 1, totalSteps)} of ${totalSteps}` : 'Ready'}
+                {totalSteps > 0 ? `Step ${Math.min(activeStepIndex + 1, totalSteps)} of ${totalSteps}` : 'Ready'}
               </span>
             </div>
 
-            {/* Current Move Card */}
+            {/* Current Step Instruction Card */}
             {currentStep ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80">
@@ -510,7 +794,7 @@ export const SolutionView: React.FC = () => {
                   {/* Restart */}
                   <button
                     onClick={handleRestart}
-                    title="Restart to Beginning"
+                    title="Restart to Beginning (Step 0)"
                     className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -520,7 +804,7 @@ export const SolutionView: React.FC = () => {
                   <button
                     onClick={handlePrevStep}
                     disabled={activeStepIndex === 0 || animatingMove !== null}
-                    title="Previous Move"
+                    title="Previous Move (Step back in 3D)"
                     className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
                   >
                     <SkipBack className="w-4 h-4" />
@@ -546,7 +830,7 @@ export const SolutionView: React.FC = () => {
                   <button
                     onClick={handleNextStep}
                     disabled={activeStepIndex >= totalSteps || animatingMove !== null}
-                    title="Next Move"
+                    title="Next Move (Step forward in 3D)"
                     className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
                   >
                     <SkipForward className="w-4 h-4" />
@@ -589,7 +873,7 @@ export const SolutionView: React.FC = () => {
             )}
           </div>
 
-          {/* Notation Reference Guide */}
+          {/* Notation & Invariants Reference Guide */}
           <div className="p-5 rounded-3xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400 space-y-3">
             <h5 className="font-bold text-slate-200 flex items-center gap-2">
               <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />

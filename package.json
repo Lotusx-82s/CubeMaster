@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node node_modules/jiti/lib/jiti-cli.mjs src/services/validator/__tests__/validator.test.ts && node node_modules/jiti/lib/jiti-cli.mjs src/services/solvers/__tests__/solvers.test.ts",
+    "test": "node node_modules/jiti/lib/jiti-cli.mjs src/services/validator/__tests__/validator.test.ts && node node_modules/jiti/lib/jiti-cli.mjs src/services/solvers/__tests__/solvers.test.ts && node node_modules/jiti/lib/jiti-cli.mjs src/services/__tests__/solutionExport.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
