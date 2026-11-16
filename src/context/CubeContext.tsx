@@ -16,7 +16,7 @@ import {
   createSolvedCubeState, 
   generateScramble 
 } from '../services/cubeState';
-import { validateCubeState3x3 } from '../services/validator';
+import { validateCubeState3x3, validatePuzzleState } from '../services/validator';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import { CubeContext } from './cubeContextInstance';
 import type { CubeContextType } from './cubeContextInstance';
@@ -131,10 +131,15 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const runValidation = useCallback((): ValidationResult => {
-    const result = validateCubeState3x3(cubeState);
+    let result: ValidationResult;
+    if (selectedPuzzle === '3x3') {
+      result = validateCubeState3x3(cubeState);
+    } else {
+      result = validatePuzzleState(selectedPuzzle, genericPuzzleState);
+    }
     setValidationResult(result);
     return result;
-  }, [cubeState]);
+  }, [selectedPuzzle, cubeState, genericPuzzleState]);
 
   const loadSolution = useCallback((steps: SolutionStep[]) => {
     setSolutionSteps(steps);

@@ -31,7 +31,7 @@ import {
 } from '../services/cvColorExtractor';
 
 export const CameraScanView: React.FC = () => {
-  const { selectedPuzzle, cubeState, setFaceColors, setView } = useCube();
+  const { selectedPuzzle, cubeState, setFaceColors, setGenericPuzzleState, setView } = useCube();
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
 
   const [activeFaceId, setActiveFaceId] = useState<string>(() => puzzleDef.faceNames[0]?.id || 'U');
@@ -382,6 +382,17 @@ export const CameraScanView: React.FC = () => {
           setFaceColors(face.id as FaceId, colors);
         }
       }
+    } else {
+      // Ensure all faces are written into genericPuzzleState
+      setGenericPuzzleState(prev => {
+        const nextState = { ...prev };
+        for (const face of puzzleDef.faceNames) {
+          if (scannedFacesData[face.id]) {
+            nextState[face.id] = scannedFacesData[face.id].map(d => d.color);
+          }
+        }
+        return nextState;
+      });
     }
     setView('validate');
   };
