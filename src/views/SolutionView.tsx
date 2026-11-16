@@ -79,6 +79,8 @@ export const SolutionView: React.FC = () => {
     loadSolution,
     initialCubeState,
     initialGenericState,
+    initialNormalizedState,
+    setNormalizedPuzzleState,
     scrambleMoves,
     setView,
   } = useCube();
@@ -145,6 +147,9 @@ export const SolutionView: React.FC = () => {
   const handleNavigateBack = useCallback((targetView: 'validate' | 'manual' = 'validate') => {
     setIsPlayingSolution(false);
     setAnimatingMove(null);
+    if (initialNormalizedState) {
+      setNormalizedPuzzleState(initialNormalizedState);
+    }
     if (is3x3 && initialCubeState) {
       setCubeState(cloneCubeState(initialCubeState));
     }
@@ -152,7 +157,17 @@ export const SolutionView: React.FC = () => {
       setGenericPuzzleState({ ...initialGenericState });
     }
     setView(targetView);
-  }, [is3x3, initialCubeState, initialGenericState, setCubeState, setGenericPuzzleState, setView, setIsPlayingSolution]);
+  }, [
+    is3x3, 
+    initialCubeState, 
+    initialGenericState, 
+    initialNormalizedState, 
+    setNormalizedPuzzleState, 
+    setCubeState, 
+    setGenericPuzzleState, 
+    setView, 
+    setIsPlayingSolution
+  ]);
 
   // Auto-scroll timeline to keep active step centered
   useEffect(() => {
@@ -251,12 +266,15 @@ export const SolutionView: React.FC = () => {
     setIsPlayingSolution(false);
     setAnimatingMove(null);
     setActiveStepIndex(0);
+    if (initialNormalizedState) setNormalizedPuzzleState(initialNormalizedState);
     if (is3x3 && initialCubeState) setCubeState(initialCubeState);
     if (!is3x3 && initialGenericState) setGenericPuzzleState(initialGenericState);
   }, [
     is3x3,
     initialCubeState,
     initialGenericState,
+    initialNormalizedState,
+    setNormalizedPuzzleState,
     setCubeState,
     setGenericPuzzleState,
     setActiveStepIndex,

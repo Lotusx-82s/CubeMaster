@@ -1,5 +1,6 @@
 import type { CubeColor, CubeState3x3, PuzzleTypeId } from '../../types/cube.ts';
 import { PUZZLE_DEFINITIONS } from '../puzzles.ts';
+import type { NormalizedPuzzleState } from '../state/types.ts';
 import { validateCube3x3 } from './cube3x3.ts';
 import { validateCube2x2 } from './cube2x2.ts';
 import { validateCube4x4 } from './cube4x4.ts';
@@ -25,18 +26,40 @@ export interface ValidationOptions {
  * Universal Puzzle State Validation Engine.
  * Supports all 6 twisty puzzles: 3×3, 2×2, 4×4, Pyraminx, Skewb, Megaminx.
  * Handles checks across all input vectors: Camera scanning, Manual color input, and URL import.
+ * Accepts either:
+ * 1. NormalizedPuzzleState: validatePuzzleState(normalizedState, options?)
+ * 2. Puzzle type + raw state: validatePuzzleState(puzzleId, state, options?)
  */
 export function validatePuzzleState(
-  puzzleId: PuzzleTypeId,
-  state: CubeState3x3 | Record<string, (CubeColor | null)[]>,
+  puzzleIdOrNormalized: PuzzleTypeId | NormalizedPuzzleState,
+  state?: CubeState3x3 | Record<string, (CubeColor | null)[]>,
   options?: ValidationOptions
 ): ValidationResult {
+  let puzzleId: PuzzleTypeId;
+  let targetState: CubeState3x3 | Record<string, (CubeColor | null)[]>;
+  let effectiveOptions = options;
+
+  if (typeof puzzleIdOrNormalized === 'object' && 'schemaVersion' in puzzleIdOrNormalized) {
+    const normalized = puzzleIdOrNormalized as NormalizedPuzzleState;
+    puzzleId = normalized.puzzleType;
+    targetState = normalized.facelets;
+    if (!effectiveOptions && normalized.metadata.scannedFaces) {
+      effectiveOptions = {
+        scannedFaceIds: normalized.metadata.scannedFaces,
+        totalExpectedFaces: normalized.metadata.scannedFaceCount,
+      };
+    }
+  } else {
+    puzzleId = puzzleIdOrNormalized as PuzzleTypeId;
+    targetState = state || {};
+  }
+
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === puzzleId) || PUZZLE_DEFINITIONS[1];
 
   // 1. Incomplete scanning check if scanning metadata is provided
-  if (options?.scannedFaceIds) {
+  if (effectiveOptions?.scannedFaceIds) {
     const requiredFaceIds = puzzleDef.faceNames.map(f => f.id);
-    const scannedSet = new Set(options.scannedFaceIds);
+    const scannedSet = new Set(effectiveOptions.scannedFaceIds);
     const missingFaces = requiredFaceIds.filter(f => !scannedSet.has(f));
 
     if (missingFaces.length > 0) {
@@ -70,22 +93,22 @@ export function validatePuzzleState(
   // 2. Dispatch to the puzzle-specific validation engine
   switch (puzzleId) {
     case '3x3':
-      return validateCube3x3(state as CubeState3x3);
+      return validateCube3x3(targetState as CubeState3x3);
 
     case '2x2':
-      return validateCube2x2(state as Record<string, (CubeColor | null)[]>);
+      return validateCube2x2(targetState as Record<string, (CubeColor | null)[]>);
 
     case '4x4':
-      return validateCube4x4(state as Record<string, (CubeColor | null)[]>);
+      return validateCube4x4(targetState as Record<string, (CubeColor | null)[]>);
 
     case 'pyraminx':
-      return validatePyraminx(state as Record<string, (CubeColor | null)[]>);
+      return validatePyraminx(targetState as Record<string, (CubeColor | null)[]>);
 
     case 'skewb':
-      return validateSkewb(state as Record<string, (CubeColor | null)[]>);
+      return validateSkewb(targetState as Record<string, (CubeColor | null)[]>);
 
     case 'megaminx':
-      return validateMegaminx(state as Record<string, (CubeColor | null)[]>);
+      return validateMegaminx(targetState as Record<string, (CubeColor | null)[]>);
 
     default:
       return {
@@ -104,6 +127,16 @@ export function validatePuzzleState(
         summary: `Validation engine not available for puzzle '${puzzleId}'.`,
       };
   }
+}
+
+/**
+ * Validates a NormalizedPuzzleState directly.
+ */
+export function validateNormalizedPuzzleState(
+  normalized: NormalizedPuzzleState,
+  options?: ValidationOptions
+): ValidationResult {
+  return validatePuzzleState(normalized, undefined, options);
 }
 
 /**

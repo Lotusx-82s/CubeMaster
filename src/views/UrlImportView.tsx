@@ -22,6 +22,7 @@ import {
   SIMULATOR_ADAPTERS, 
   type SimulatorParseResult 
 } from '../services/simulatorAdapters';
+import { parseUrlInput } from '../services/state';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 
 const EXAMPLE_URLS = [
@@ -61,6 +62,7 @@ export const UrlImportView: React.FC = () => {
   const { 
     setCubeState, 
     setSelectedPuzzle, 
+    commitNormalizedState,
     setInputMode, 
     setView
   } = useCube();
@@ -124,18 +126,21 @@ export const UrlImportView: React.FC = () => {
   const handleConfirmAndProceed = () => {
     if (!parseResult || !parseResult.success) return;
 
+    // 1. Process via unified URL input parser
+    const { state: normalized } = parseUrlInput(inputUrl);
+
+    if (normalized) {
+      commitNormalizedState(normalized);
+    } else if (parseResult.puzzleType === '3x3' && parseResult.cubeState3x3) {
+      setCubeState(parseResult.cubeState3x3);
+      if (parseResult.puzzleType) {
+        setSelectedPuzzle(parseResult.puzzleType);
+      }
+    }
+
     setInputMode('url');
 
-    if (parseResult.puzzleType) {
-      setSelectedPuzzle(parseResult.puzzleType);
-    }
-
-    // If 3x3, commit reconstructed state to CubeContext
-    if (parseResult.puzzleType === '3x3' && parseResult.cubeState3x3) {
-      setCubeState(parseResult.cubeState3x3);
-    }
-
-    // Navigate to Validation view
+    // 2. Navigate to Validation view
     setView('validate');
   };
 

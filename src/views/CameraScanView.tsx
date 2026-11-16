@@ -29,9 +29,18 @@ import {
   type ColorDetectionResult, 
   type RoiPoint 
 } from '../services/cvColorExtractor';
+import { parseCameraScanInput } from '../services/state';
 
 export const CameraScanView: React.FC = () => {
-  const { selectedPuzzle, cubeState, setFaceColors, setGenericPuzzleState, setView } = useCube();
+  const { 
+    selectedPuzzle, 
+    cubeState, 
+    setFaceColors, 
+    setGenericPuzzleState, 
+    commitNormalizedState,
+    setInputMode,
+    setView 
+  } = useCube();
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
 
   const [activeFaceId, setActiveFaceId] = useState<string>(() => puzzleDef.faceNames[0]?.id || 'U');
@@ -374,8 +383,17 @@ export const CameraScanView: React.FC = () => {
 
   // Proceed to Validation
   const handleProceedToValidation = () => {
+    // 1. Parse through input-specific camera parser to produce NormalizedPuzzleState
+    const normalized = parseCameraScanInput(selectedPuzzle, scannedFacesData, {
+      scannedFaces: Object.keys(scannedFacesData),
+    });
+
+    // 2. Commit normalized state to context
+    commitNormalizedState(normalized);
+    setInputMode('camera');
+
+    // 3. Fallback compatibility sync for raw states
     if (selectedPuzzle === '3x3') {
-      // Ensure all 6 faces are written into CubeContext
       for (const face of puzzleDef.faceNames) {
         if (scannedFacesData[face.id]) {
           const colors = scannedFacesData[face.id].map(d => d.color);
@@ -383,7 +401,6 @@ export const CameraScanView: React.FC = () => {
         }
       }
     } else {
-      // Ensure all faces are written into genericPuzzleState
       setGenericPuzzleState(prev => {
         const nextState = { ...prev };
         for (const face of puzzleDef.faceNames) {
@@ -394,6 +411,8 @@ export const CameraScanView: React.FC = () => {
         return nextState;
       });
     }
+
+    // 4. Advance to validation
     setView('validate');
   };
 

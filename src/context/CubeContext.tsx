@@ -17,8 +17,18 @@ import {
   createSolvedCubeState, 
   generateScramble 
 } from '../services/cubeState';
-import { validateCubeState3x3, validatePuzzleState } from '../services/validator';
+import { validatePuzzleState } from '../services/validator';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
+import { 
+  createDefaultSolvedNormalizedState, 
+  createEmptyNormalizedState, 
+  cubeStateToNormalized, 
+  genericStateToNormalized, 
+  normalizedToCubeState, 
+  normalizedToGenericState,
+  cloneNormalizedState
+} from '../services/state';
+import type { NormalizedPuzzleState } from '../services/state/types';
 import { CubeContext } from './cubeContextInstance';
 import type { CubeContextType } from './cubeContextInstance';
 
@@ -42,7 +52,7 @@ function createEmptyGenericState(puzzleId: PuzzleTypeId): Record<string, (CubeCo
 
 export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentView, setView] = useState<AppView>('home');
-  const [selectedPuzzle, setSelectedPuzzle] = useState<PuzzleTypeId>('3x3');
+  const [selectedPuzzle, setSelectedPuzzleState] = useState<PuzzleTypeId>('3x3');
   const [inputMode, setInputMode] = useState<InputMode>('manual');
   
   const [cubeState, setCubeState] = useState<CubeState3x3>(() => createSolvedCubeState());
@@ -62,66 +72,128 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     createInitialGenericState('3x3')
   );
 
+  // Normalized Puzzle State Architecture
+  const [normalizedPuzzleState, setNormalizedPuzzleState] = useState<NormalizedPuzzleState>(() =>
+    createDefaultSolvedNormalizedState('3x3', 'manual')
+  );
+  const [initialNormalizedState, setInitialNormalizedState] = useState<NormalizedPuzzleState | null>(null);
+
+  const setSelectedPuzzle = useCallback((puzzle: PuzzleTypeId) => {
+    setSelectedPuzzleState(puzzle);
+    const nextSolved = createDefaultSolvedNormalizedState(puzzle, inputMode);
+    setNormalizedPuzzleState(nextSolved);
+    if (puzzle === '3x3') {
+      setCubeState(createSolvedCubeState());
+    }
+    setGenericPuzzleState(createInitialGenericState(puzzle));
+    setValidationResult(null);
+    setSolutionSteps([]);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+  }, [inputMode]);
+
+  const commitNormalizedState = useCallback((state: NormalizedPuzzleState) => {
+    setNormalizedPuzzleState(state);
+    setSelectedPuzzleState(state.puzzleType);
+    setInputMode(state.source);
+    if (state.puzzleType === '3x3') {
+      setCubeState(normalizedToCubeState(state));
+    }
+    setGenericPuzzleState(normalizedToGenericState(state));
+    setValidationResult(null);
+    setSolutionSteps([]);
+    setActiveStepIndex(0);
+    setIsPlayingSolution(false);
+  }, []);
+
   const setGenericStickerColor = useCallback((faceId: string, index: number, color: CubeColor | null) => {
     setGenericPuzzleState(prev => {
       const currentFace = prev[faceId] || [];
       const updated = [...currentFace];
       updated[index] = color;
-      return {
+      const next = {
         ...prev,
         [faceId]: updated,
       };
+      setNormalizedPuzzleState(normPrev => 
+        genericStateToNormalized(normPrev.puzzleType, next, normPrev.source, normPrev.metadata)
+      );
+      return next;
     });
+    setValidationResult(null);
   }, []);
 
   const resetGenericPuzzle = useCallback(() => {
-    setGenericPuzzleState(createInitialGenericState(selectedPuzzle));
-  }, [selectedPuzzle]);
+    const next = createInitialGenericState(selectedPuzzle);
+    setGenericPuzzleState(next);
+    setNormalizedPuzzleState(createDefaultSolvedNormalizedState(selectedPuzzle, inputMode));
+    setValidationResult(null);
+  }, [selectedPuzzle, inputMode]);
 
   const clearGenericPuzzle = useCallback(() => {
-    setGenericPuzzleState(createEmptyGenericState(selectedPuzzle));
-  }, [selectedPuzzle]);
+    const next = createEmptyGenericState(selectedPuzzle);
+    setGenericPuzzleState(next);
+    setNormalizedPuzzleState(createEmptyNormalizedState(selectedPuzzle, false, inputMode));
+    setValidationResult(null);
+  }, [selectedPuzzle, inputMode]);
 
   const setStickerColor = useCallback((face: FaceId, index: number, color: CubeColor | null) => {
     setCubeState(prev => {
       const nextFace = [...prev[face]];
       nextFace[index] = color;
-      return {
+      const nextCubeState = {
         ...prev,
         [face]: nextFace,
       };
+      setNormalizedPuzzleState(normPrev => 
+        cubeStateToNormalized(nextCubeState, normPrev.source, normPrev.metadata)
+      );
+      return nextCubeState;
     });
     setValidationResult(null);
   }, []);
 
   const setFaceColors = useCallback((face: FaceId, colors: (CubeColor | null)[]) => {
-    setCubeState(prev => ({
-      ...prev,
-      [face]: [...colors],
-    }));
+    setCubeState(prev => {
+      const nextCubeState = {
+        ...prev,
+        [face]: [...colors],
+      };
+      setNormalizedPuzzleState(normPrev => 
+        cubeStateToNormalized(nextCubeState, normPrev.source, normPrev.metadata)
+      );
+      return nextCubeState;
+    });
     setValidationResult(null);
   }, []);
 
   const resetToSolved = useCallback(() => {
     setCubeState(createSolvedCubeState());
+    setGenericPuzzleState(createInitialGenericState(selectedPuzzle));
+    setNormalizedPuzzleState(createDefaultSolvedNormalizedState(selectedPuzzle, inputMode));
     setValidationResult(null);
     setSolutionSteps([]);
     setActiveStepIndex(0);
     setIsPlayingSolution(false);
-  }, []);
+  }, [selectedPuzzle, inputMode]);
 
   const clearCube = useCallback((preserveCenters = true) => {
     setCubeState(createEmptyCubeState(preserveCenters));
+    setNormalizedPuzzleState(createEmptyNormalizedState('3x3', preserveCenters, inputMode));
     setValidationResult(null);
     setSolutionSteps([]);
     setActiveStepIndex(0);
     setIsPlayingSolution(false);
-  }, []);
+  }, [inputMode]);
 
   const scrambleCube = useCallback((length = 20) => {
     const moves = generateScramble(length);
     setScrambleMoves(moves);
-    setCubeState(prev => applyMoves(prev, moves));
+    setCubeState(prev => {
+      const nextState = applyMoves(prev, moves);
+      setNormalizedPuzzleState(cubeStateToNormalized(nextState, 'manual', { scrambleMoves: moves }));
+      return nextState;
+    });
     setValidationResult(null);
     setSolutionSteps([]);
     setActiveStepIndex(0);
@@ -130,33 +202,47 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const applySingleMove = useCallback((move: string) => {
-    setCubeState(prev => applyMove(prev, move));
+    setCubeState(prev => {
+      const next = applyMove(prev, move);
+      setNormalizedPuzzleState(cubeStateToNormalized(next, 'manual'));
+      return next;
+    });
   }, []);
 
   const runValidation = useCallback((): ValidationResult => {
-    let result: ValidationResult;
-    if (selectedPuzzle === '3x3') {
-      result = validateCubeState3x3(cubeState);
-    } else {
-      result = validatePuzzleState(selectedPuzzle, genericPuzzleState);
-    }
+    // Validate through the unified engine using normalizedPuzzleState
+    const result = validatePuzzleState(normalizedPuzzleState);
     setValidationResult(result);
     return result;
-  }, [selectedPuzzle, cubeState, genericPuzzleState]);
+  }, [normalizedPuzzleState]);
 
-  const loadSolution = useCallback((steps: SolutionStep[], initial3x3?: CubeState3x3, initialGeneric?: Record<string, (CubeColor | null)[]>) => {
+  const loadSolution = useCallback((
+    steps: SolutionStep[], 
+    initial3x3?: CubeState3x3, 
+    initialGeneric?: Record<string, (CubeColor | null)[]>,
+    initialNormalized?: NormalizedPuzzleState
+  ) => {
     setSolutionSteps(steps);
     setActiveStepIndex(0);
     setIsPlayingSolution(false);
+    if (initialNormalized) {
+      setInitialNormalizedState(cloneNormalizedState(initialNormalized));
+    }
     if (initial3x3) {
       setInitialCubeState(cloneCubeState(initial3x3));
       setCubeState(cloneCubeState(initial3x3));
+      if (!initialNormalized) {
+        setInitialNormalizedState(cubeStateToNormalized(initial3x3));
+      }
     }
     if (initialGeneric) {
       setInitialGenericState({ ...initialGeneric });
       setGenericPuzzleState({ ...initialGeneric });
+      if (!initialNormalized) {
+        setInitialNormalizedState(genericStateToNormalized(selectedPuzzle, initialGeneric));
+      }
     }
-  }, []);
+  }, [selectedPuzzle]);
 
   const value = useMemo<CubeContextType>(() => ({
     currentView,
@@ -182,6 +268,10 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGenericStickerColor,
     resetGenericPuzzle,
     clearGenericPuzzle,
+    normalizedPuzzleState,
+    setNormalizedPuzzleState,
+    commitNormalizedState,
+    initialNormalizedState,
     validationResult,
     runValidation,
     solutionSteps,
@@ -198,6 +288,7 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }), [
     currentView,
     selectedPuzzle,
+    setSelectedPuzzle,
     inputMode,
     cubeState,
     selectedColor,
@@ -211,6 +302,9 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGenericStickerColor,
     resetGenericPuzzle,
     clearGenericPuzzle,
+    normalizedPuzzleState,
+    commitNormalizedState,
+    initialNormalizedState,
     validationResult,
     runValidation,
     solutionSteps,

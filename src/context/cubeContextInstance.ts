@@ -9,6 +9,7 @@ import type {
   ValidationResult 
 } from '../types/cube';
 import type { AppView } from '../types/navigation';
+import type { NormalizedPuzzleState } from '../services/state/types';
 
 export interface CubeContextType {
   currentView: AppView;
@@ -37,6 +38,12 @@ export interface CubeContextType {
   setGenericStickerColor: (faceId: string, index: number, color: CubeColor | null) => void;
   resetGenericPuzzle: () => void;
   clearGenericPuzzle: () => void;
+
+  // Unified Normalized State Architecture
+  normalizedPuzzleState: NormalizedPuzzleState;
+  setNormalizedPuzzleState: React.Dispatch<React.SetStateAction<NormalizedPuzzleState>>;
+  commitNormalizedState: (state: NormalizedPuzzleState) => void;
+  initialNormalizedState?: NormalizedPuzzleState | null;
   
   validationResult: ValidationResult | null;
   runValidation: () => ValidationResult;
@@ -48,7 +55,12 @@ export interface CubeContextType {
   setIsPlayingSolution: (playing: boolean) => void;
   playbackSpeed: number;
   setPlaybackSpeed: (speed: number) => void;
-  loadSolution: (steps: SolutionStep[], initial3x3?: CubeState3x3, initialGeneric?: Record<string, (CubeColor | null)[]>) => void;
+  loadSolution: (
+    steps: SolutionStep[], 
+    initial3x3?: CubeState3x3, 
+    initialGeneric?: Record<string, (CubeColor | null)[]>,
+    initialNormalized?: NormalizedPuzzleState
+  ) => void;
   initialCubeState?: CubeState3x3 | null;
   initialGenericState?: Record<string, (CubeColor | null)[]> | null;
   scrambleMoves: string[];

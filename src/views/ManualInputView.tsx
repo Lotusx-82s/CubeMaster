@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
+import { parseManualInput } from '../services/state';
 import type { CubeColor, FaceId } from '../types/cube';
 import { CUBE_COLORS } from '../types/cube';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
@@ -46,6 +47,8 @@ export const ManualInputView: React.FC = () => {
     setGenericStickerColor,
     resetGenericPuzzle,
     clearGenericPuzzle,
+    commitNormalizedState,
+    setInputMode,
     setView 
   } = useCube();
 
@@ -217,7 +220,18 @@ export const ManualInputView: React.FC = () => {
     }
 
     setValidationWarning(null);
-    // Proceed to Validation view
+
+    // 1. Parse through input-specific manual parser to produce NormalizedPuzzleState
+    const normalized = parseManualInput(
+      selectedPuzzle, 
+      is3x3 ? cubeState : genericPuzzleState
+    );
+
+    // 2. Commit normalized state to context
+    commitNormalizedState(normalized);
+    setInputMode('manual');
+
+    // 3. Proceed to Validation view
     setView('validate');
   };
 

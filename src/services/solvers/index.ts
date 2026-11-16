@@ -1,4 +1,5 @@
 import type { CubeState3x3, PuzzleTypeId } from '../../types/cube.ts';
+import type { NormalizedPuzzleState } from '../state/types.ts';
 import { Rubiks3x3Solver } from './rubiks3x3.ts';
 import { Pocket2x2Solver } from './pocket2x2.ts';
 import { PyraminxSolver } from './pyraminx.ts';
@@ -51,12 +52,31 @@ export const solverRegistry = new SolverRegistry();
  * High-level unified solving dispatcher.
  * Selects the matching puzzle solver, enforces timeout protection,
  * and executes mandatory post-solve verification.
+ * Supports either:
+ * 1. NormalizedPuzzleState: solvePuzzle(normalizedState, timeoutMs?)
+ * 2. Puzzle type + raw state: solvePuzzle(puzzleType, state, timeoutMs?)
  */
 export async function solvePuzzle(
-  puzzleType: PuzzleTypeId,
-  state: CubeState3x3 | GenericPuzzleState,
+  puzzleTypeOrNormalized: PuzzleTypeId | NormalizedPuzzleState,
+  state?: CubeState3x3 | GenericPuzzleState | number,
   timeoutMs = 8000
 ): Promise<SolverResult> {
+  let puzzleType: PuzzleTypeId;
+  let targetState: CubeState3x3 | GenericPuzzleState;
+  let effectiveTimeout = timeoutMs;
+
+  if (typeof puzzleTypeOrNormalized === 'object' && 'schemaVersion' in puzzleTypeOrNormalized) {
+    const normalized = puzzleTypeOrNormalized as NormalizedPuzzleState;
+    puzzleType = normalized.puzzleType;
+    targetState = normalized.facelets as unknown as CubeState3x3;
+    if (typeof state === 'number') {
+      effectiveTimeout = state;
+    }
+  } else {
+    puzzleType = puzzleTypeOrNormalized as PuzzleTypeId;
+    targetState = (state as CubeState3x3 | GenericPuzzleState) || {};
+  }
+
   const solver = solverRegistry.getSolverForPuzzle(puzzleType);
 
   if (!solver) {
@@ -72,9 +92,5 @@ export async function solvePuzzle(
     };
   }
 
-  if (!solver.isReady) {
-    return solver.solve(state, timeoutMs);
-  }
-
-  return solver.solve(state, timeoutMs);
+  return solver.solve(targetState, effectiveTimeout);
 }

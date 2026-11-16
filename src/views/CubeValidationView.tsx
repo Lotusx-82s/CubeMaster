@@ -11,7 +11,8 @@ import {
   Sparkles, 
   Info, 
   Layers,
-  Loader2
+  Loader2,
+  Globe
 } from 'lucide-react';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
@@ -60,7 +61,9 @@ export const CubeValidationView: React.FC = () => {
     setView,
     setActiveFace,
     loadSolution,
-    genericPuzzleState
+    genericPuzzleState,
+    normalizedPuzzleState,
+    inputMode,
   } = useCube();
 
   const [isSolving, setIsSolving] = useState(false);
@@ -86,11 +89,16 @@ export const CubeValidationView: React.FC = () => {
     setSolverError(null);
 
     try {
-      const state = is3x3 ? cubeState : genericPuzzleState;
-      const result = await solvePuzzle(selectedPuzzle, state);
+      // Dispatch via unified solving engine using normalizedPuzzleState
+      const result = await solvePuzzle(normalizedPuzzleState);
 
       if (result.success) {
-        loadSolution(result.steps, is3x3 ? cubeState : undefined, !is3x3 ? genericPuzzleState : undefined);
+        loadSolution(
+          result.steps, 
+          is3x3 ? cubeState : undefined, 
+          !is3x3 ? genericPuzzleState : undefined,
+          normalizedPuzzleState
+        );
         setView('solution');
       } else {
         setSolverError(result.error || `Failed to calculate a valid solution for ${puzzleDef.name}.`);
@@ -241,6 +249,43 @@ export const CubeValidationView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Diagnostics breakdown */}
         <div className="lg:col-span-7 space-y-6">
+          {/* Unified Architecture Pipeline Metadata Banner */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                {inputMode === 'camera' ? (
+                  <Camera className="w-5 h-5" />
+                ) : inputMode === 'url' ? (
+                  <Globe className="w-5 h-5" />
+                ) : (
+                  <Edit3 className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Normalized State Vector
+                  </span>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    {inputMode === 'camera' ? 'Camera Scanner' : inputMode === 'url' ? 'URL Import' : 'Manual Painter'}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  {inputMode === 'url' && normalizedPuzzleState.metadata.sourceUrl
+                    ? `Imported from: ${normalizedPuzzleState.metadata.simulatorName || 'Simulator'} (${normalizedPuzzleState.metadata.scrambleMoves?.length || 0} moves)`
+                    : inputMode === 'camera'
+                    ? `Captured ${normalizedPuzzleState.metadata.scannedFaceCount || puzzleDef.facesCount} faces with ${normalizedPuzzleState.metadata.averageConfidence || 92}% confidence`
+                    : `Interactive palette input • ${puzzleDef.totalStickers} stickers decomposed`}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800/80">
+              <span className="text-cyan-400 font-bold">{normalizedPuzzleState.pieces.length}</span>
+              <span>Pieces Decomposed</span>
+            </div>
+          </div>
+
           {/* Color Distribution Checklist for Selected Puzzle */}
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
