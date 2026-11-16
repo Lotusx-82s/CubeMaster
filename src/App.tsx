@@ -9,6 +9,7 @@ import ManualInputView from './views/ManualInputView';
 import CubeValidationView from './views/CubeValidationView';
 import SolutionView from './views/SolutionView';
 import SettingsView from './views/SettingsView';
+import UrlImportView from './views/UrlImportView';
 
 const MainContent: React.FC = () => {
   const { currentView } = useCube();
@@ -19,6 +20,7 @@ const MainContent: React.FC = () => {
       {currentView === 'select' && <CubeSelectionView />}
       {currentView === 'scan' && <CameraScanView />}
       {currentView === 'manual' && <ManualInputView />}
+      {currentView === 'url-import' && <UrlImportView />}
       {currentView === 'validate' && <CubeValidationView />}
       {currentView === 'solution' && <SolutionView />}
       {currentView === 'settings' && <SettingsView />}

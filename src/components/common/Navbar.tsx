@@ -10,7 +10,8 @@ import {
   X, 
   Sparkles,
   ChevronRight,
-  Layers
+  Layers,
+  Link2
 } from 'lucide-react';
 import { useCube } from '../../context';
 import type { AppView } from '../../types/navigation';
@@ -24,6 +25,7 @@ export const Navbar: React.FC = () => {
     { id: 'select', label: 'Puzzles', icon: Layers },
     { id: 'scan', label: 'Camera Scan', icon: Camera },
     { id: 'manual', label: 'Manual Input', icon: Edit3 },
+    { id: 'url-import', label: 'URL Import', icon: Link2 },
     { id: 'validate', label: 'Validation', icon: CheckCircle2 },
     { id: 'solution', label: '3D Solution', icon: PlayCircle },
     { id: 'settings', label: 'Help & Guide', icon: Settings },

@@ -3,6 +3,7 @@ export type AppView =
   | 'select' 
   | 'scan' 
   | 'manual' 
+  | 'url-import' 
   | 'validate' 
   | 'solution' 
   | 'settings';

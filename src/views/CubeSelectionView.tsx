@@ -7,7 +7,8 @@ import {
   Cpu, 
   Sparkles, 
   Layers, 
-  ArrowRight
+  ArrowRight,
+  Link2
 } from 'lucide-react';
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
@@ -24,12 +25,14 @@ export const CubeSelectionView: React.FC = () => {
     setSelectedPuzzle(id);
   };
 
-  const handleProceedWithMode = (mode: 'camera' | 'manual') => {
+  const handleProceedWithMode = (mode: 'camera' | 'manual' | 'url') => {
     setInputMode(mode);
     if (mode === 'camera') {
       setView('scan');
-    } else {
+    } else if (mode === 'manual') {
       setView('manual');
+    } else {
+      setView('url-import');
     }
   };
 
@@ -233,7 +236,7 @@ export const CubeSelectionView: React.FC = () => {
               <span>Select Input Method for {currentDef.name}:</span>
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Option A: Camera Scanning */}
               <div
                 onClick={() => handleProceedWithMode('camera')}
@@ -270,7 +273,7 @@ export const CubeSelectionView: React.FC = () => {
               {/* Option B: Enter Colors Manually */}
               <div
                 onClick={() => handleProceedWithMode('manual')}
-                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -296,6 +299,39 @@ export const CubeSelectionView: React.FC = () => {
                 >
                   <Edit3 className="w-4 h-4 text-emerald-400 group-hover:text-white" />
                   <span>Open Manual Color Painter</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Option C: Import Using Simulator URL */}
+              <div
+                onClick={() => handleProceedWithMode('url')}
+                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                      <Link2 className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      Option C
+                    </span>
+                  </div>
+
+                  <h5 className="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                    Import via Simulator URL
+                  </h5>
+                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                    Paste a link from Alg.cubing.net or CubeDB with a scrambled puzzle state. Extracts and validates physical parity client-side without executing remote scripts.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-slate-800 group-hover:bg-purple-600 text-white border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Link2 className="w-4 h-4 text-purple-400 group-hover:text-white" />
+                  <span>Import Simulator URL</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

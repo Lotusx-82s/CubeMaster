@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Edit3, ArrowRight, ShieldCheck, Sparkles, Layers } from 'lucide-react';
+import { Camera, Edit3, ArrowRight, ShieldCheck, Sparkles, Layers, Link2 } from 'lucide-react';
 import { useCube } from '../../context';
 import HeroCube3D from '../3d/HeroCube3D';
 
@@ -14,6 +14,11 @@ export const HeroSection: React.FC = () => {
   const handleStartManual = () => {
     setInputMode('manual');
     setView('manual');
+  };
+
+  const handleStartUrl = () => {
+    setInputMode('url');
+    setView('url-import');
   };
 
   return (
@@ -69,6 +74,14 @@ export const HeroSection: React.FC = () => {
               >
                 <Edit3 className="w-5 h-5 text-cyan-400" />
                 <span>Manual 3D Input</span>
+              </button>
+
+              <button
+                onClick={handleStartUrl}
+                className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl font-bold text-base bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-800 hover:border-purple-500/40 shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+              >
+                <Link2 className="w-5 h-5 text-purple-400" />
+                <span>Import URL</span>
               </button>
             </div>
 

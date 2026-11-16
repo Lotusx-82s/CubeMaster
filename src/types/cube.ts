@@ -26,7 +26,7 @@ export type FaceId = StandardFaceId;
 
 export type PuzzleTypeId = '2x2' | '3x3' | '4x4' | 'pyraminx' | 'skewb' | 'megaminx';
 
-export type InputMode = 'manual' | 'camera';
+export type InputMode = 'manual' | 'camera' | 'url';
 
 export interface PuzzleDefinition {
   id: PuzzleTypeId;
