@@ -1,6 +1,11 @@
 import type { PuzzleTypeId } from '../../types/cube';
 import type { SimulatorAdapter, SimulatorParseResult } from './types';
-import { normalizeMoveSequence, reconstructAndValidate3x3State } from './moveNormalizer';
+import { 
+  normalizeMoveSequence, 
+  reconstructAndValidate3x3State, 
+  reconstructAndValidate2x2State, 
+  reconstructAndValidate4x4State 
+} from './moveNormalizer';
 
 export const algCubingNetAdapter: SimulatorAdapter = {
   id: 'alg-cubing-net',
@@ -94,7 +99,57 @@ export const algCubingNetAdapter: SimulatorAdapter = {
       };
     }
 
-    // Non-3x3 supported puzzle
+    // 5. For 2x2: Reconstruct 2x2 state and validate invariants
+    if (puzzleType === '2x2') {
+      const { state, isValid, issues } = reconstructAndValidate2x2State(moves);
+
+      if (!isValid) {
+        return {
+          success: false,
+          simulatorName: this.name,
+          puzzleType,
+          scrambleMoves: moves,
+          normalizedMovesStr: normalizedStr,
+          errorCode: 'INVALID_CUBE_CONFIGURATION',
+          error: `Resulting 2×2 cube state failed physical parity checks: ${issues.join('; ')}`,
+        };
+      }
+
+      return {
+        success: true,
+        simulatorName: this.name,
+        puzzleType,
+        scrambleMoves: moves,
+        normalizedMovesStr: normalizedStr,
+        genericPuzzleState: state,
+        metadata: {
+          rawParam: rawMoves,
+          description: `Extracted ${moves.length} moves (${normalizedStr}) for 2×2 from Alg.cubing.net`,
+          moveCount: moves.length,
+        },
+      };
+    }
+
+    // 6. For 4x4: Reconstruct 4x4 state
+    if (puzzleType === '4x4') {
+      const { state } = reconstructAndValidate4x4State(moves);
+
+      return {
+        success: true,
+        simulatorName: this.name,
+        puzzleType,
+        scrambleMoves: moves,
+        normalizedMovesStr: normalizedStr,
+        genericPuzzleState: state,
+        metadata: {
+          rawParam: rawMoves,
+          description: `Extracted ${moves.length} moves for 4×4 from Alg.cubing.net`,
+          moveCount: moves.length,
+        },
+      };
+    }
+
+    // Other supported puzzle (e.g. pyraminx)
     return {
       success: true,
       simulatorName: this.name,

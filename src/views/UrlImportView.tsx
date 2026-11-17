@@ -9,9 +9,10 @@ import {
   ShieldAlert, 
   CheckCircle2, 
   ArrowRight, 
-  ExternalLink, 
   Loader2, 
-  Edit3 
+  Edit3,
+  HelpCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useCube } from '../context';
 import PageHeader from '../components/common/PageHeader';
@@ -19,7 +20,7 @@ import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
 import { 
   parseSimulatorUrl, 
-  SIMULATOR_ADAPTERS, 
+  SIMULATOR_COMPATIBILITY_REGISTRY,
   type SimulatorParseResult 
 } from '../services/simulatorAdapters';
 import { parseUrlInput } from '../services/state';
@@ -27,32 +28,32 @@ import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 
 const EXAMPLE_URLS = [
   {
-    name: 'RubiksCu.be 54-Facelet State',
+    name: 'RubiksCu.be 54-Facelets',
     url: 'https://rubikscu.be/play/?f=DDFRUUFDRBLLDRULFFUFDRFLLBUUUBBDRRUDBBRFLDBLFDBLRBLRFU',
-    badge: '54 Facelets',
+    badge: '3×3 Facelets',
   },
   {
-    name: 'RubiksCu.be Scramble',
-    url: 'https://rubikscu.be/?scramble=R_U_R-_U-_F2_D_L2_B-',
-    badge: 'RubiksCu.be',
-  },
-  {
-    name: 'Alg.cubing.net (WCA Scramble)',
+    name: 'Alg.cubing.net (3×3 Scramble)',
     url: 'https://alg.cubing.net/?setup=R_U_R-_U-_F2_D_L2_B-&puzzle=3x3x3',
-    badge: 'Popular',
+    badge: '3×3 WCA',
   },
   {
-    name: 'Alg.cubing.net (Superflip)',
-    url: 'https://alg.cubing.net/?setup=U_R2_F_B_R_B2_R_U2_L_B2_R_U-_D-_R2_F_R-_L_B2_U2_F2&puzzle=3x3x3',
-    badge: '20-Move Superflip',
+    name: 'Alg.cubing.net (2×2 Pocket)',
+    url: 'https://alg.cubing.net/?setup=R_U_R-_U-&puzzle=2x2x2',
+    badge: '2×2 Pocket',
   },
   {
-    name: 'CubeDB.net Scramble',
+    name: 'Alg.cubing.net (4×4 Revenge)',
+    url: 'https://alg.cubing.net/?setup=R_U_R-_U-_F2_D_L2_B-&puzzle=4x4x4',
+    badge: '4×4 State View',
+  },
+  {
+    name: 'CubeDB.net (3×3)',
     url: 'https://cubedb.net/?puzzle=3&scramble=R_U_R-_U-_F2_D_L2_B-',
     badge: 'CubeDB',
   },
   {
-    name: 'CubeMaster Native Link',
+    name: 'CubeMaster Native (3×3)',
     url: 'https://cubemaster.app/?puzzle=3x3&scramble=F_R_U_R-_U-_F-',
     badge: 'Native',
   },
@@ -71,6 +72,7 @@ export const UrlImportView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [parseResult, setParseResult] = useState<SimulatorParseResult | null>(null);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
+  const [showMatrix, setShowMatrix] = useState<boolean>(false);
 
   // Paste from clipboard
   const handlePasteClipboard = async () => {
@@ -119,7 +121,7 @@ export const UrlImportView: React.FC = () => {
       } else {
         setErrorFeedback(null);
       }
-    }, 300);
+    }, 250);
   };
 
   // Confirm imported configuration and route to solver
@@ -145,12 +147,13 @@ export const UrlImportView: React.FC = () => {
   };
 
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === parseResult?.puzzleType) || PUZZLE_DEFINITIONS[1];
+  const verifiedSimulators = SIMULATOR_COMPATIBILITY_REGISTRY.filter(s => s.integrationStatus === 'VERIFIED');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <PageHeader
         title="Import Cube Using Simulator URL"
-        subtitle="Paste a link from external Rubik's cube simulators (e.g. Alg.cubing.net, CubeDB.net) to instantly import, reconstruct, and solve scrambled configurations."
+        subtitle="Paste a link from verified external Rubik's cube simulators (e.g. Alg.cubing.net, CubeDB.net, RubiksCu.be) to instantly extract, validate, and solve scrambled puzzle configurations."
         badge="URL Import"
         backTo="select"
         actions={
@@ -264,9 +267,12 @@ export const UrlImportView: React.FC = () => {
         {errorFeedback && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-start gap-3 shadow-lg">
             <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <strong className="font-bold text-rose-300 block mb-0.5">Import Error ({parseResult?.errorCode || 'FAILED'})</strong>
+            <div className="space-y-1">
+              <strong className="font-bold text-rose-300 block">Import Error ({parseResult?.errorCode || 'FAILED'})</strong>
               <p className="leading-relaxed">{errorFeedback}</p>
+              <div className="pt-2 text-[11px] text-slate-400">
+                You can correct the URL above or try one of the verified presets.
+              </div>
             </div>
           </div>
         )}
@@ -314,14 +320,20 @@ export const UrlImportView: React.FC = () => {
                   Extracted WCA Move Sequence:
                 </span>
                 <div className="flex items-center gap-1.5 flex-wrap p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner">
-                  {parseResult.scrambleMoves?.map((m, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-cyan-300 font-mono font-bold text-xs shadow-sm"
-                    >
-                      {m}
+                  {parseResult.scrambleMoves && parseResult.scrambleMoves.length > 0 ? (
+                    parseResult.scrambleMoves.map((m, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-cyan-300 font-mono font-bold text-xs shadow-sm"
+                      >
+                        {m}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">
+                      Direct facelet color state extracted ({parseResult.metadata?.description || '54 facelets'})
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -377,44 +389,116 @@ export const UrlImportView: React.FC = () => {
         </div>
       )}
 
-      {/* Supported Simulators Registry Card */}
-      <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-xl space-y-4">
-        <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-          <Link2 className="w-4 h-4 text-cyan-400" />
-          <span>Supported Simulator Registry & Security Invariants</span>
-        </h4>
+      {/* Simulator Compatibility Registry */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-cyan-400" />
+              <span>Simulator Compatibility Registry</span>
+            </h4>
+            <p className="text-xs text-slate-400 mt-1">
+              Deterministic, zero-trust client-side adapter registry. Only tested integrations are marked as verified.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SIMULATOR_ADAPTERS.map((adapter) => (
+          <button
+            type="button"
+            onClick={() => setShowMatrix(!showMatrix)}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{showMatrix ? 'Hide Full Matrix' : 'View Full Compatibility Matrix'}</span>
+          </button>
+        </div>
+
+        {/* Verified Simulators Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {verifiedSimulators.map((entry) => (
             <div
-              key={adapter.id}
-              className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/90 space-y-2 flex flex-col justify-between"
+              key={entry.id}
+              className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/90 space-y-3 flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-white text-xs">{adapter.name}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    Verified
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-bold text-white text-xs">{entry.name}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                    VERIFIED
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
-                  {adapter.description}
-                </p>
-                <div className="text-[10px] text-slate-500 font-mono truncate">
-                  Domains: {adapter.domains.join(', ')}
+                <div className="text-[11px] text-cyan-400 font-mono mb-2">
+                  {entry.officialDomain}
+                </div>
+                <div className="text-[11px] text-slate-400 line-clamp-2 mb-2">
+                  {entry.urlFormat}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Puzzles: {adapter.supportedPuzzles.join(', ')}</span>
-                <span className="text-cyan-400 font-semibold flex items-center gap-1">
-                  <span>WCA</span>
-                  <ExternalLink className="w-3 h-3" />
-                </span>
+              <div className="pt-2 border-t border-slate-800/80 space-y-1.5 text-[11px] text-slate-400">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Puzzles:</span>
+                  <span className="text-white font-medium">{entry.supportedPuzzles.join(', ')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Method:</span>
+                  <span className="text-cyan-300 font-mono text-[10px]">{entry.extractionMethod}</span>
+                </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Evaluated Unsupported Simulators Matrix (When expanded) */}
+        {showMatrix && (
+          <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wider">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              <span>Tested & Evaluated Simulator Matrix</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                    <th className="py-2.5 px-3">Simulator</th>
+                    <th className="py-2.5 px-3">Domain</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Supported Puzzles</th>
+                    <th className="py-2.5 px-3">Extraction Method</th>
+                    <th className="py-2.5 px-3">Technical Evaluation Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {SIMULATOR_COMPATIBILITY_REGISTRY.map((sim) => (
+                    <tr key={sim.id} className="hover:bg-slate-900/30">
+                      <td className="py-2.5 px-3 font-bold text-white">{sim.name}</td>
+                      <td className="py-2.5 px-3 font-mono text-cyan-400">{sim.officialDomain}</td>
+                      <td className="py-2.5 px-3">
+                        {sim.integrationStatus === 'VERIFIED' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            VERIFIED
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                            UNSUPPORTED
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {sim.supportedPuzzles.length > 0 ? sim.supportedPuzzles.join(', ') : 'None'}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-[10px] text-slate-400">
+                        {sim.extractionMethod}
+                      </td>
+                      <td className="py-2.5 px-3 text-[11px] text-slate-400">
+                        {sim.testResults.notes}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Security Disclaimers */}
         <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400 space-y-1.5">
