@@ -1,24 +1,27 @@
 import React from 'react';
-import { Camera, Edit3, ArrowRight, ShieldCheck, Sparkles, Layers, Link2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, Layers, Play } from 'lucide-react';
 import { useCube } from '../../context';
 import HeroCube3D from '../3d/HeroCube3D';
 
 export const HeroSection: React.FC = () => {
-  const { setView, setInputMode } = useCube();
+  const { setView } = useCube();
 
-  const handleStartCamera = () => {
-    setInputMode('camera');
-    setView('scan');
+  const handleStartSolving = () => {
+    const el = document.getElementById('input-selection');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      setView('select');
+    }
   };
 
-  const handleStartManual = () => {
-    setInputMode('manual');
-    setView('manual');
-  };
-
-  const handleStartUrl = () => {
-    setInputMode('url');
-    setView('url-import');
+  const handleExplorePuzzles = () => {
+    const el = document.getElementById('puzzle-selection');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      setView('select');
+    }
   };
 
   return (
@@ -32,56 +35,48 @@ export const HeroSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Headlines & Actions */}
           <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-            {/* Top pill badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/60 shadow-inner">
+            {/* Website Name & Tagline Badge */}
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 shadow-inner">
               <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
-              <span className="text-xs font-semibold text-slate-300">
-                Next-Gen AI Rubik's Cube Solver
+              <span className="text-xs font-black tracking-wide text-white uppercase">
+                CubeMaster
               </span>
-              <span className="text-xs text-cyan-400 font-bold flex items-center gap-1">
-                v1.0 <Sparkles className="w-3 h-3" />
+              <span className="w-1 h-1 rounded-full bg-slate-600" />
+              <span className="text-xs font-semibold text-cyan-300">
+                Every Puzzle. One Solution.
               </span>
             </div>
 
-            {/* Main Title */}
+            {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
-              Solve Any Rubik's Cube with{' '}
+              Solve Any Cube,{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
-                AI Vision
-              </span>{' '}
-              & 3D Precision.
+                Your Way.
+              </span>
             </h1>
 
-            {/* Subtitle */}
+            {/* Subheading */}
             <p className="text-base sm:text-lg text-slate-300/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Scan your scrambled cube face-by-face using your device camera or tap colors onto an interactive 3D virtual cube. Get instant state validation and step-by-step animated 3D solution moves.
+              Scan it, enter its colors manually, or import a scrambled puzzle from a supported simulator. Get step-by-step solutions with interactive 3D animations.
             </p>
 
-            {/* Action Buttons */}
+            {/* Main Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <button
-                onClick={handleStartCamera}
-                className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-base bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 text-white shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                onClick={handleStartSolving}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 text-white shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
               >
-                <Camera className="w-5 h-5" />
-                <span>Scan with Camera</span>
-                <ArrowRight className="w-4 h-4 text-cyan-200" />
+                <Play className="w-5 h-5 fill-current text-white group-hover:scale-110 transition-transform" />
+                <span>Start Solving</span>
+                <ArrowRight className="w-4 h-4 text-cyan-200 group-hover:translate-x-1 transition-transform" />
               </button>
 
               <button
-                onClick={handleStartManual}
-                className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-base bg-slate-900/90 hover:bg-slate-800/90 text-white border border-slate-700/80 shadow-lg hover:border-slate-600 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                onClick={handleExplorePuzzles}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base bg-slate-900/90 hover:bg-slate-800/90 text-white border border-slate-700/80 shadow-lg hover:border-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
               >
-                <Edit3 className="w-5 h-5 text-cyan-400" />
-                <span>Manual 3D Input</span>
-              </button>
-
-              <button
-                onClick={handleStartUrl}
-                className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl font-bold text-base bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-800 hover:border-purple-500/40 shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
-              >
-                <Link2 className="w-5 h-5 text-purple-400" />
-                <span>Import URL</span>
+                <Layers className="w-5 h-5 text-cyan-400" />
+                <span>Explore Puzzles</span>
               </button>
             </div>
 

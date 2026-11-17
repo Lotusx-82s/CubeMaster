@@ -2,10 +2,12 @@ import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { createSolvedCubeState } from '../../services/cubeState';
+import { createSolvedCubeState, applyMove } from '../../services/cubeState';
 import { RubiksCubeScene } from './RubiksCube3D';
 
-const heroCubeState = createSolvedCubeState();
+// Create a vibrant, colorful Rubik's cube state for the hero illustration
+const heroScrambleMoves = ['R', 'U', 'R\'', 'U\'', 'F\'', 'U', 'F', 'R', 'B2', 'L', 'U2'];
+const heroCubeState = heroScrambleMoves.reduce(applyMove, createSolvedCubeState());
 
 const FloatingHeroScene: React.FC = () => {
   const groupRef = useRef<THREE.Group>(null);
@@ -48,7 +50,8 @@ export const HeroCube3D: React.FC = () => {
 
       <Canvas
         camera={{ position: [4.2, 3.2, 5], fov: 40 }}
-        gl={{ antialias: true, alpha: true }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
         <ambientLight intensity={0.9} />
         <directionalLight position={[10, 15, 10]} intensity={1.8} />

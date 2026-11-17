@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Camera, 
-  Edit3, 
+  Grid,
   CheckCircle2, 
   ShieldAlert, 
   Cpu, 
@@ -237,10 +237,10 @@ export const CubeSelectionView: React.FC = () => {
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Option A: Camera Scanning */}
+              {/* Option 1: SCAN YOUR CUBE */}
               <div
                 onClick={() => handleProceedWithMode('camera')}
-                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-6 rounded-2xl bg-slate-950/80 border-2 border-slate-800 hover:border-cyan-500/60 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -248,65 +248,83 @@ export const CubeSelectionView: React.FC = () => {
                       <Camera className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                      Option A
+                      AI Vision
                     </span>
                   </div>
 
-                  <h5 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">
-                    Scan Using Camera
+                  <h5 className="text-lg font-black text-white mb-2 group-hover:text-cyan-300 transition-colors uppercase">
+                    SCAN YOUR CUBE
                   </h5>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                    Position your physical {currentDef.name} within the real-time targeting frame. Capture all {currentDef.facesCount} faces with automatic color extraction and lighting correction.
+                  <p className="text-xs text-slate-300/90 leading-relaxed mb-4">
+                    Position your physical {currentDef.name} within the real-time targeting frame. Capture all {currentDef.facesCount} faces with automatic color extraction.
                   </p>
+
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-semibold text-cyan-300 mb-6">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Capture all puzzle faces</span>
+                  </div>
                 </div>
 
                 <button
                   type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProceedWithMode('camera');
+                  }}
                   className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/35 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Launch Camera Scanner</span>
+                  <span>Start Scanning</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Option B: Enter Colors Manually */}
+              {/* Option 2: ENTER COLORS MANUALLY */}
               <div
                 onClick={() => handleProceedWithMode('manual')}
-                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-6 rounded-2xl bg-slate-950/80 border-2 border-slate-800 hover:border-emerald-500/60 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                      <Edit3 className="w-6 h-6" />
+                      <Grid className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Option B
+                      3D / 2D Net
                     </span>
                   </div>
 
-                  <h5 className="text-lg font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
-                    Enter Colors Manually
+                  <h5 className="text-lg font-black text-white mb-2 group-hover:text-emerald-300 transition-colors uppercase">
+                    ENTER COLORS MANUALLY
                   </h5>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                    Paint stickers directly on an interactive net or 3D preview. Includes full color palette ({currentDef.colorSet.length} colors), sticker counters, random scramble, and reset tools.
+                  <p className="text-xs text-slate-300/90 leading-relaxed mb-4">
+                    Paint stickers directly on an unfolded 2D net or interactive 3D model. Includes full color palette ({currentDef.colorSet.length} colors) and undo history.
                   </p>
+
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-semibold text-emerald-300 mb-6">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Select each sticker color</span>
+                  </div>
                 </div>
 
                 <button
                   type="button"
-                  className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-slate-800 group-hover:bg-emerald-600 text-white border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProceedWithMode('manual');
+                  }}
+                  className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/35 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Edit3 className="w-4 h-4 text-emerald-400 group-hover:text-white" />
-                  <span>Open Manual Color Painter</span>
+                  <Grid className="w-4 h-4" />
+                  <span>Enter Colors</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Option C: Import Using Simulator URL */}
+              {/* Option 3: IMPORT USING URL */}
               <div
                 onClick={() => handleProceedWithMode('url')}
-                className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-6 rounded-2xl bg-slate-950/80 border-2 border-slate-800 hover:border-purple-500/60 hover:bg-slate-950 transition-all cursor-pointer group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -314,24 +332,33 @@ export const CubeSelectionView: React.FC = () => {
                       <Link2 className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                      Option C
+                      Zero-Touch
                     </span>
                   </div>
 
-                  <h5 className="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
-                    Import via Simulator URL
+                  <h5 className="text-lg font-black text-white mb-2 group-hover:text-purple-300 transition-colors uppercase">
+                    IMPORT USING URL
                   </h5>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                    Paste a link from Alg.cubing.net or CubeDB with a scrambled puzzle state. Extracts and validates physical parity client-side without executing remote scripts.
+                  <p className="text-xs text-slate-300/90 leading-relaxed mb-4">
+                    Paste a link from Alg.cubing.net, CubeDB.net, or RubiksCu.be to extract and validate scrambled configurations client-side.
                   </p>
+
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-semibold text-purple-300 mb-6">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span>Paste a supported simulator URL</span>
+                  </div>
                 </div>
 
                 <button
                   type="button"
-                  className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-slate-800 group-hover:bg-purple-600 text-white border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProceedWithMode('url');
+                  }}
+                  className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/35 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Link2 className="w-4 h-4 text-purple-400 group-hover:text-white" />
-                  <span>Import Simulator URL</span>
+                  <Link2 className="w-4 h-4" />
+                  <span>Import Cube</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

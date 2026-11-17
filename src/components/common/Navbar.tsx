@@ -69,7 +69,7 @@ export const Navbar: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              Intelligent Rubik's Cube Solver & Visualizer
+              Every Puzzle. One Solution.
             </p>
           </div>
         </div>
