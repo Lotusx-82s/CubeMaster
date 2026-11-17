@@ -12,22 +12,22 @@ interface SkewbCornerDef {
   colors: [CubeColor, CubeColor, CubeColor];
 }
 
-// 8 Corners of Skewb
+// 8 Corners of Skewb (Orange Top, White Front)
 const SKEWB_CORNERS: SkewbCornerDef[] = [
-  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 4, 'F', 1, 'L', 2], colors: ['white', 'green', 'orange'] },
-  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 3, 'R', 1, 'F', 2], colors: ['white', 'red', 'green'] },
-  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 2, 'B', 1, 'R', 2], colors: ['white', 'blue', 'red'] },
-  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 1, 'L', 1, 'B', 2], colors: ['white', 'orange', 'blue'] },
-  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 1, 'L', 3, 'F', 4], colors: ['yellow', 'orange', 'green'] },
-  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 2, 'F', 3, 'R', 4], colors: ['yellow', 'green', 'red'] },
-  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 3, 'R', 3, 'B', 4], colors: ['yellow', 'red', 'blue'] },
-  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 4, 'B', 3, 'L', 4], colors: ['yellow', 'blue', 'orange'] },
+  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 4, 'F', 1, 'L', 2], colors: ['orange', 'white', 'green'] },
+  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 3, 'R', 1, 'F', 2], colors: ['orange', 'blue', 'white'] },
+  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 2, 'B', 1, 'R', 2], colors: ['orange', 'yellow', 'blue'] },
+  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 1, 'L', 1, 'B', 2], colors: ['orange', 'green', 'yellow'] },
+  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 1, 'L', 3, 'F', 4], colors: ['red', 'green', 'white'] },
+  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 2, 'F', 3, 'R', 4], colors: ['red', 'white', 'blue'] },
+  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 3, 'R', 3, 'B', 4], colors: ['red', 'blue', 'yellow'] },
+  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 4, 'B', 3, 'L', 4], colors: ['red', 'yellow', 'green'] },
 ];
 
 const OPPOSITE_PAIRS_SKEWB: [CubeColor, CubeColor][] = [
+  ['orange', 'red'],
   ['white', 'yellow'],
-  ['green', 'blue'],
-  ['red', 'orange'],
+  ['blue', 'green'],
 ];
 
 export function validateSkewb(state: Record<string, (CubeColor | null)[]>): ValidationResult {

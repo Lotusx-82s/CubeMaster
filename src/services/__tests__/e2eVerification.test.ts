@@ -115,23 +115,23 @@ describe('CubeMaster Comprehensive End-to-End Test Suite', () => {
   describe('Test Case 3: Invalid Color Configuration', () => {
     it('Detects monochromatic edge piece (INVALID_COLOR_ARRANGEMENT)', () => {
       const state = createSolvedCubeState();
-      // UF edge is at U[7] (white) and F[1] (green); turn both to red while balancing counts
-      state.U[7] = 'red';
-      state.F[1] = 'red';
-      state.R[1] = 'white';
-      state.R[7] = 'green';
+      // UF edge is at U[7] (orange) and F[1] (white); turn both to blue while balancing counts
+      state.U[7] = 'blue';
+      state.F[1] = 'blue';
+      state.R[1] = 'orange';
+      state.R[7] = 'white';
       const val = validatePuzzleState('3x3', state);
       assert.strictEqual(val.isValid, false);
       const edgeIssue = val.issues.find(i => i.category === 'INVALID_COLOR_ARRANGEMENT');
       assert.ok(edgeIssue, 'Should flag invalid color arrangement');
     });
 
-    it('Detects opposite colors on the same edge piece (white-yellow)', () => {
+    it('Detects opposite colors on the same edge piece (orange-red)', () => {
       const state = createSolvedCubeState();
-      // Place yellow on UF edge while balancing yellow/green counts
-      state.U[7] = 'white';
-      state.F[1] = 'yellow';
-      state.D[1] = 'green';
+      // Place red on UF edge while balancing red/white counts
+      state.U[7] = 'orange';
+      state.F[1] = 'red';
+      state.D[1] = 'white';
       const val = validatePuzzleState('3x3', state);
       assert.strictEqual(val.isValid, false);
       const issue = val.issues.find(i => i.category === 'INVALID_COLOR_ARRANGEMENT');
@@ -183,10 +183,10 @@ describe('CubeMaster Comprehensive End-to-End Test Suite', () => {
   describe('Test Case 6: Impossible Puzzle State & Parity Constraints', () => {
     it('Detects single corner twist parity error on 3x3', () => {
       const state = createSolvedCubeState();
-      // Twist UFL corner clockwise: U[6]=orange, F[0]=white, L[2]=green
-      state.U[6] = 'orange';
-      state.F[0] = 'white';
-      state.L[2] = 'green';
+      // Twist UFL corner clockwise: U[6]=green, F[0]=orange, L[2]=white
+      state.U[6] = 'green';
+      state.F[0] = 'orange';
+      state.L[2] = 'white';
       const val = validatePuzzleState('3x3', state);
       assert.strictEqual(val.isValid, false);
       const parityIssue = val.issues.find(i => i.category === 'IMPOSSIBLE_PUZZLE_STATE' && i.title.includes('Corner Orientation'));
@@ -195,9 +195,9 @@ describe('CubeMaster Comprehensive End-to-End Test Suite', () => {
 
     it('Detects single flipped edge parity error on 3x3', () => {
       const state = createSolvedCubeState();
-      // Flip UF edge: U[7]=green, F[1]=white
-      state.U[7] = 'green';
-      state.F[1] = 'white';
+      // Flip UF edge: U[7]=white, F[1]=orange
+      state.U[7] = 'white';
+      state.F[1] = 'orange';
       const val = validatePuzzleState('3x3', state);
       assert.strictEqual(val.isValid, false);
       const parityIssue = val.issues.find(i => i.category === 'IMPOSSIBLE_PUZZLE_STATE' && i.title.includes('Edge Orientation'));

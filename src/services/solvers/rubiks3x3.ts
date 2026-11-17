@@ -18,12 +18,12 @@ function ensureKociembaInitialized() {
  */
 export function stateToFaceletString(state: CubeState3x3): string {
   const colorToFace: Record<CubeColor, string> = {
-    [state.U[4] || 'white']: 'U',
-    [state.R[4] || 'red']: 'R',
-    [state.F[4] || 'green']: 'F',
-    [state.D[4] || 'yellow']: 'D',
-    [state.L[4] || 'orange']: 'L',
-    [state.B[4] || 'blue']: 'B',
+    [state.U[4] || 'orange']: 'U',
+    [state.R[4] || 'blue']: 'R',
+    [state.F[4] || 'white']: 'F',
+    [state.D[4] || 'red']: 'D',
+    [state.L[4] || 'green']: 'L',
+    [state.B[4] || 'yellow']: 'B',
   } as Record<CubeColor, string>;
 
   const faceOrder: FaceId[] = ['U', 'R', 'F', 'D', 'L', 'B'];

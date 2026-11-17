@@ -10,14 +10,14 @@ interface CornerDef4x4 {
 }
 
 const CORNERS_4X4: CornerDef4x4[] = [
-  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 12, 'F', 0, 'L', 3], colors: ['white', 'green', 'orange'] },
-  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 15, 'R', 0, 'F', 3], colors: ['white', 'red', 'green'] },
-  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 3, 'B', 0, 'R', 3], colors: ['white', 'blue', 'red'] },
-  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 3], colors: ['white', 'orange', 'blue'] },
-  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 15, 'F', 12], colors: ['yellow', 'orange', 'green'] },
-  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 3, 'F', 15, 'R', 12], colors: ['yellow', 'green', 'red'] },
-  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 15, 'R', 15, 'B', 12], colors: ['yellow', 'red', 'blue'] },
-  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 12, 'B', 15, 'L', 12], colors: ['yellow', 'blue', 'orange'] },
+  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 12, 'F', 0, 'L', 3], colors: ['orange', 'white', 'green'] },
+  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 15, 'R', 0, 'F', 3], colors: ['orange', 'blue', 'white'] },
+  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 3, 'B', 0, 'R', 3], colors: ['orange', 'yellow', 'blue'] },
+  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 3], colors: ['orange', 'green', 'yellow'] },
+  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 15, 'F', 12], colors: ['red', 'green', 'white'] },
+  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 3, 'F', 15, 'R', 12], colors: ['red', 'white', 'blue'] },
+  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 15, 'R', 15, 'B', 12], colors: ['red', 'blue', 'yellow'] },
+  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 12, 'B', 15, 'L', 12], colors: ['red', 'yellow', 'green'] },
 ];
 
 // 24 Wing Edge Slots (2 wing edges per edge pair)
@@ -52,9 +52,9 @@ const CENTER_INDICES_4X4 = [5, 6, 9, 10];
 const REQUIRED_COLORS_4X4: CubeColor[] = ['white', 'yellow', 'green', 'blue', 'red', 'orange'];
 
 const OPPOSITE_PAIRS_4X4: [CubeColor, CubeColor][] = [
+  ['orange', 'red'],
   ['white', 'yellow'],
-  ['green', 'blue'],
-  ['red', 'orange'],
+  ['blue', 'green'],
 ];
 
 export function validateCube4x4(state: Record<string, (CubeColor | null)[]>): ValidationResult {

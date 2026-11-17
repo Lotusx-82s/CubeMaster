@@ -9,14 +9,14 @@ interface CornerDef2x2 {
 }
 
 const CORNERS_2X2: CornerDef2x2[] = [
-  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 2, 'F', 0, 'L', 1], colors: ['white', 'green', 'orange'] },
-  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 3, 'R', 0, 'F', 1], colors: ['white', 'red', 'green'] },
-  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 1, 'B', 0, 'R', 1], colors: ['white', 'blue', 'red'] },
-  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 1], colors: ['white', 'orange', 'blue'] },
-  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 3, 'F', 2], colors: ['yellow', 'orange', 'green'] },
-  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 1, 'F', 3, 'R', 2], colors: ['yellow', 'green', 'red'] },
-  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 3, 'R', 3, 'B', 2], colors: ['yellow', 'red', 'blue'] },
-  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 2, 'B', 3, 'L', 2], colors: ['yellow', 'blue', 'orange'] },
+  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 2, 'F', 0, 'L', 1], colors: ['orange', 'white', 'green'] },
+  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 3, 'R', 0, 'F', 1], colors: ['orange', 'blue', 'white'] },
+  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 1, 'B', 0, 'R', 1], colors: ['orange', 'yellow', 'blue'] },
+  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 1], colors: ['orange', 'green', 'yellow'] },
+  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 3, 'F', 2], colors: ['red', 'green', 'white'] },
+  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 1, 'F', 3, 'R', 2], colors: ['red', 'white', 'blue'] },
+  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 3, 'R', 3, 'B', 2], colors: ['red', 'blue', 'yellow'] },
+  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 2, 'B', 3, 'L', 2], colors: ['red', 'yellow', 'green'] },
 ];
 
 export class Cube2x2Model {
@@ -152,9 +152,9 @@ export function describeMove2x2(move: string): SolutionStep {
   const angle = isDouble ? 180 : isPrime ? -90 : 90;
 
   const faceNames: Record<string, string> = {
-    U: 'Up (White)',
-    R: 'Right (Red)',
-    F: 'Front (Green)',
+    U: 'Up (Orange)',
+    R: 'Right (Blue)',
+    F: 'Front (White)',
   };
 
   const name = faceNames[face] || face;

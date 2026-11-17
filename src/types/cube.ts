@@ -74,12 +74,12 @@ export const CUBE_COLORS: Record<CubeColor, ColorDef> = {
 };
 
 export const FACE_NAMES: Record<FaceId, { name: string; standardColor: CubeColor; opposite: FaceId }> = {
-  U: { name: 'Up (Top)', standardColor: 'white', opposite: 'D' },
-  D: { name: 'Down (Bottom)', standardColor: 'yellow', opposite: 'U' },
-  F: { name: 'Front', standardColor: 'green', opposite: 'B' },
-  B: { name: 'Back', standardColor: 'blue', opposite: 'F' },
-  R: { name: 'Right', standardColor: 'red', opposite: 'L' },
-  L: { name: 'Left', standardColor: 'orange', opposite: 'R' },
+  U: { name: 'Up (Orange)', standardColor: 'orange', opposite: 'D' },
+  D: { name: 'Down (Red)', standardColor: 'red', opposite: 'U' },
+  F: { name: 'Front (White)', standardColor: 'white', opposite: 'B' },
+  B: { name: 'Back (Yellow)', standardColor: 'yellow', opposite: 'F' },
+  R: { name: 'Right (Blue)', standardColor: 'blue', opposite: 'L' },
+  L: { name: 'Left (Green)', standardColor: 'green', opposite: 'R' },
 };
 
 export type FaceState = (CubeColor | null)[];

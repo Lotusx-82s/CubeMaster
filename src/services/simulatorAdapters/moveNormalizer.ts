@@ -156,12 +156,12 @@ function rotate2x2FaceCW(face: (CubeColor | null)[]): (CubeColor | null)[] {
 
 export function createSolved2x2State(): Record<string, (CubeColor | null)[]> {
   return {
-    U: ['white', 'white', 'white', 'white'],
-    R: ['red', 'red', 'red', 'red'],
-    F: ['green', 'green', 'green', 'green'],
-    D: ['yellow', 'yellow', 'yellow', 'yellow'],
-    L: ['orange', 'orange', 'orange', 'orange'],
-    B: ['blue', 'blue', 'blue', 'blue'],
+    U: ['orange', 'orange', 'orange', 'orange'],
+    R: ['blue', 'blue', 'blue', 'blue'],
+    F: ['white', 'white', 'white', 'white'],
+    D: ['red', 'red', 'red', 'red'],
+    L: ['green', 'green', 'green', 'green'],
+    B: ['yellow', 'yellow', 'yellow', 'yellow'],
   };
 }
 
@@ -262,12 +262,12 @@ export function reconstructAndValidate2x2State(moves: string[]): {
 
 export function createSolved4x4State(): Record<string, (CubeColor | null)[]> {
   return {
-    U: Array(16).fill('white'),
-    R: Array(16).fill('red'),
-    F: Array(16).fill('green'),
-    D: Array(16).fill('yellow'),
-    L: Array(16).fill('orange'),
-    B: Array(16).fill('blue'),
+    U: Array(16).fill('orange'),
+    R: Array(16).fill('blue'),
+    F: Array(16).fill('white'),
+    D: Array(16).fill('red'),
+    L: Array(16).fill('green'),
+    B: Array(16).fill('yellow'),
   };
 }
 

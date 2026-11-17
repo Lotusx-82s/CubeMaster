@@ -55,7 +55,7 @@ export const SettingsView: React.FC = () => {
   const faqs = [
     {
       q: 'How should I orient my cube when starting?',
-      a: 'The World Cube Association (WCA) standard orientation is White on Top (U) and Green in Front (F). With this orientation, Red is on the Right (R), Orange is on the Left (L), Blue is on the Back (B), and Yellow is on the Bottom (D).',
+      a: 'CubeMaster uses Orange on Top (U) and White in Front (F). With this orientation, Right (R) is Blue, Back (B) is Yellow, Left (L) is Green, and Bottom (D) is Red. Opposite pairs are Orange/Red, White/Yellow, and Blue/Green.',
     },
     {
       q: 'Why does my camera scan report wrong colors?',
@@ -223,15 +223,33 @@ export const SettingsView: React.FC = () => {
               </div>
 
               <div className="pt-2 border-t border-slate-800">
-                <span className="text-slate-300 block font-semibold mb-1">Color Palette Calibration</span>
-                <span className="text-slate-400 block text-[11px] mb-2">Standard BOYR Western Color Scheme (White/Yellow, Green/Blue, Red/Orange).</span>
-                <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded bg-[#ffffff] border border-slate-300" />
-                  <span className="w-4 h-4 rounded bg-[#facc15]" />
-                  <span className="w-4 h-4 rounded bg-[#16a34a]" />
-                  <span className="w-4 h-4 rounded bg-[#2563eb]" />
-                  <span className="w-4 h-4 rounded bg-[#dc2626]" />
-                  <span className="w-4 h-4 rounded bg-[#ea580c]" />
+                <span className="text-slate-300 block font-semibold mb-1">Active Cube Orientation</span>
+                <span className="text-slate-400 block text-[11px] mb-2">Configured with <strong>Orange on Top</strong> and <strong>White in Front</strong>:</span>
+                <div className="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#ea580c]" />
+                    <span>U: Orange</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#f8fafc] border border-slate-400" />
+                    <span className="text-slate-200">F: White</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#2563eb]" />
+                    <span>R: Blue</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#facc15]" />
+                    <span>B: Yellow</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#16a34a]" />
+                    <span>L: Green</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-[#dc2626]" />
+                    <span>D: Red</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -51,7 +51,7 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
 
   it('detects duplicate center colors (INVALID_COLOR_ARRANGEMENT)', () => {
     const state = createSolvedCubeState();
-    state.F[4] = 'white'; // Now both U and F have white centers
+    state.F[4] = 'orange'; // Now both U and F have orange centers
     const result = validateCubeState3x3(state);
     assert.equal(result.isValid, false);
     const centerIssue = result.issues.find(i => i.title.includes('Center'));
@@ -61,11 +61,11 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
 
   it('detects monochromatic edge piece (INVALID_COLOR_ARRANGEMENT)', () => {
     const state = createSolvedCubeState();
-    // UF edge is at U[7] (white) and F[1] (green)
-    state.U[7] = 'red';
-    state.F[1] = 'red'; // Both sides are red
-    state.R[1] = 'white';
-    state.R[7] = 'green';
+    // UF edge is at U[7] (orange) and F[1] (white)
+    state.U[7] = 'blue';
+    state.F[1] = 'blue'; // Both sides are blue
+    state.R[1] = 'orange';
+    state.R[7] = 'white';
     const result = validateCube3x3(state);
     assert.equal(result.isValid, false);
     assert.ok(result.issues.some(i => i.title.includes('Monochromatic Edge')));
@@ -73,10 +73,10 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
 
   it('detects opposite colors on same edge (INVALID_COLOR_ARRANGEMENT)', () => {
     const state = createSolvedCubeState();
-    // White and Yellow are opposites
-    state.U[7] = 'white';
-    state.F[1] = 'yellow';
-    state.D[1] = 'green';
+    // Orange and Red are opposites
+    state.U[7] = 'orange';
+    state.F[1] = 'red';
+    state.D[1] = 'white';
     const result = validateCube3x3(state);
     assert.equal(result.isValid, false);
     assert.ok(result.issues.some(i => i.title.includes('Impossible Edge Colors') || i.category === 'INVALID_COLOR_ARRANGEMENT'));
@@ -85,11 +85,11 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
   it('detects single twisted corner parity error (IMPOSSIBLE_PUZZLE_STATE)', () => {
     const state = createSolvedCubeState();
     // Twist UFL corner in place: slots are U[6], F[0], L[2]
-    // Solved: U[6]=white, F[0]=green, L[2]=orange
-    // Twist CW: U[6]=orange, F[0]=white, L[2]=green
-    state.U[6] = 'orange';
-    state.F[0] = 'white';
-    state.L[2] = 'green';
+    // Solved: U[6]=orange, F[0]=white, L[2]=green
+    // Twist CW: U[6]=green, F[0]=orange, L[2]=white
+    state.U[6] = 'green';
+    state.F[0] = 'orange';
+    state.L[2] = 'white';
 
     const result = validateCube3x3(state);
     assert.equal(result.isValid, false);
@@ -101,10 +101,10 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
   it('detects single flipped edge parity error (IMPOSSIBLE_PUZZLE_STATE)', () => {
     const state = createSolvedCubeState();
     // Flip UF edge in place: U[7] and F[1]
-    // Solved: U[7]=white, F[1]=green
-    // Flipped: U[7]=green, F[1]=white
-    state.U[7] = 'green';
-    state.F[1] = 'white';
+    // Solved: U[7]=orange, F[1]=white
+    // Flipped: U[7]=white, F[1]=orange
+    state.U[7] = 'white';
+    state.F[1] = 'orange';
 
     const result = validateCube3x3(state);
     assert.equal(result.isValid, false);

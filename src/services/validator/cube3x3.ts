@@ -17,32 +17,32 @@ interface EdgeDefinition {
   primaryFace: FaceId;
 }
 
-// 8 Canonical Corner Positions and their clockwise sticker order
+// 8 Canonical Corner Positions and their clockwise sticker order (Orange Top, White Front)
 const CORNERS_3X3: CornerDefinition[] = [
-  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 6, 'F', 0, 'L', 2], colors: ['white', 'green', 'orange'] },
-  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 8, 'R', 0, 'F', 2], colors: ['white', 'red', 'green'] },
-  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 2, 'B', 0, 'R', 2], colors: ['white', 'blue', 'red'] },
-  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 2], colors: ['white', 'orange', 'blue'] },
-  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 8, 'F', 6], colors: ['yellow', 'orange', 'green'] },
-  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 2, 'F', 8, 'R', 6], colors: ['yellow', 'green', 'red'] },
-  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 8, 'R', 8, 'B', 6], colors: ['yellow', 'red', 'blue'] },
-  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 6, 'B', 8, 'L', 6], colors: ['yellow', 'blue', 'orange'] },
+  { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 6, 'F', 0, 'L', 2], colors: ['orange', 'white', 'green'] },
+  { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 8, 'R', 0, 'F', 2], colors: ['orange', 'blue', 'white'] },
+  { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 2, 'B', 0, 'R', 2], colors: ['orange', 'yellow', 'blue'] },
+  { id: 'UBL', name: 'Up-Back-Left', slots: ['U', 0, 'L', 0, 'B', 2], colors: ['orange', 'green', 'yellow'] },
+  { id: 'DFL', name: 'Down-Front-Left', slots: ['D', 0, 'L', 8, 'F', 6], colors: ['red', 'green', 'white'] },
+  { id: 'DFR', name: 'Down-Front-Right', slots: ['D', 2, 'F', 8, 'R', 6], colors: ['red', 'white', 'blue'] },
+  { id: 'DBR', name: 'Down-Back-Right', slots: ['D', 8, 'R', 8, 'B', 6], colors: ['red', 'blue', 'yellow'] },
+  { id: 'DBL', name: 'Down-Back-Left', slots: ['D', 6, 'B', 8, 'L', 6], colors: ['red', 'yellow', 'green'] },
 ];
 
-// 12 Canonical Edge Positions
+// 12 Canonical Edge Positions (Orange Top, White Front)
 const EDGES_3X3: EdgeDefinition[] = [
-  { id: 'UF', name: 'Up-Front', slots: ['U', 7, 'F', 1], colors: ['white', 'green'], primaryFace: 'U' },
-  { id: 'UR', name: 'Up-Right', slots: ['U', 5, 'R', 1], colors: ['white', 'red'], primaryFace: 'U' },
-  { id: 'UB', name: 'Up-Back', slots: ['U', 1, 'B', 1], colors: ['white', 'blue'], primaryFace: 'U' },
-  { id: 'UL', name: 'Up-Left', slots: ['U', 3, 'L', 1], colors: ['white', 'orange'], primaryFace: 'U' },
-  { id: 'DF', name: 'Down-Front', slots: ['D', 1, 'F', 7], colors: ['yellow', 'green'], primaryFace: 'D' },
-  { id: 'DR', name: 'Down-Right', slots: ['D', 5, 'R', 7], colors: ['yellow', 'red'], primaryFace: 'D' },
-  { id: 'DB', name: 'Down-Back', slots: ['D', 7, 'B', 7], colors: ['yellow', 'blue'], primaryFace: 'D' },
-  { id: 'DL', name: 'Down-Left', slots: ['D', 3, 'L', 7], colors: ['yellow', 'orange'], primaryFace: 'D' },
-  { id: 'FR', name: 'Front-Right', slots: ['F', 5, 'R', 3], colors: ['green', 'red'], primaryFace: 'F' },
-  { id: 'FL', name: 'Front-Left', slots: ['F', 3, 'L', 5], colors: ['green', 'orange'], primaryFace: 'F' },
-  { id: 'BR', name: 'Back-Right', slots: ['B', 3, 'R', 5], colors: ['blue', 'red'], primaryFace: 'B' },
-  { id: 'BL', name: 'Back-Left', slots: ['B', 5, 'L', 3], colors: ['blue', 'orange'], primaryFace: 'B' },
+  { id: 'UF', name: 'Up-Front', slots: ['U', 7, 'F', 1], colors: ['orange', 'white'], primaryFace: 'U' },
+  { id: 'UR', name: 'Up-Right', slots: ['U', 5, 'R', 1], colors: ['orange', 'blue'], primaryFace: 'U' },
+  { id: 'UB', name: 'Up-Back', slots: ['U', 1, 'B', 1], colors: ['orange', 'yellow'], primaryFace: 'U' },
+  { id: 'UL', name: 'Up-Left', slots: ['U', 3, 'L', 1], colors: ['orange', 'green'], primaryFace: 'U' },
+  { id: 'DF', name: 'Down-Front', slots: ['D', 1, 'F', 7], colors: ['red', 'white'], primaryFace: 'D' },
+  { id: 'DR', name: 'Down-Right', slots: ['D', 5, 'R', 7], colors: ['red', 'blue'], primaryFace: 'D' },
+  { id: 'DB', name: 'Down-Back', slots: ['D', 7, 'B', 7], colors: ['red', 'yellow'], primaryFace: 'D' },
+  { id: 'DL', name: 'Down-Left', slots: ['D', 3, 'L', 7], colors: ['red', 'green'], primaryFace: 'D' },
+  { id: 'FR', name: 'Front-Right', slots: ['F', 5, 'R', 3], colors: ['white', 'blue'], primaryFace: 'F' },
+  { id: 'FL', name: 'Front-Left', slots: ['F', 3, 'L', 5], colors: ['white', 'green'], primaryFace: 'F' },
+  { id: 'BR', name: 'Back-Right', slots: ['B', 3, 'R', 5], colors: ['yellow', 'blue'], primaryFace: 'B' },
+  { id: 'BL', name: 'Back-Left', slots: ['B', 5, 'L', 3], colors: ['yellow', 'green'], primaryFace: 'B' },
 ];
 
 const REQUIRED_COLORS: CubeColor[] = ['white', 'yellow', 'green', 'blue', 'red', 'orange'];

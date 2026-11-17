@@ -237,14 +237,14 @@ describe('Input Workflows Audit: Camera Scanning System', () => {
 describe('Input Workflows Audit: Manual Color Input System', () => {
   it('creates clean solved and empty manual states for 3×3 Rubik’s Cube', () => {
     const solved = createSolvedCubeState();
-    assert.strictEqual(solved.U.every(c => c === 'white'), true);
-    assert.strictEqual(solved.D.every(c => c === 'yellow'), true);
-    assert.strictEqual(solved.F.every(c => c === 'green'), true);
+    assert.strictEqual(solved.U.every(c => c === 'orange'), true);
+    assert.strictEqual(solved.D.every(c => c === 'red'), true);
+    assert.strictEqual(solved.F.every(c => c === 'white'), true);
 
     const emptyPreserveCenters = createEmptyCubeState(true);
-    assert.strictEqual(emptyPreserveCenters.U[4], 'white');
+    assert.strictEqual(emptyPreserveCenters.U[4], 'orange');
     assert.strictEqual(emptyPreserveCenters.U[0], null);
-    assert.strictEqual(emptyPreserveCenters.F[4], 'green');
+    assert.strictEqual(emptyPreserveCenters.F[4], 'white');
     assert.strictEqual(emptyPreserveCenters.F[1], null);
   });
 
@@ -264,7 +264,7 @@ describe('Input Workflows Audit: Manual Color Input System', () => {
     const lastAction = history.pop()!;
     state.U[lastAction.index] = lastAction.prevColor;
 
-    assert.strictEqual(state.U[0], 'white');
+    assert.strictEqual(state.U[0], 'orange');
   });
 
   it('supports eraser mode by resetting stickers to null', () => {
@@ -318,7 +318,7 @@ describe('Input Workflows Audit: Manual Color Input System', () => {
     let state3x3 = createSolvedCubeState();
     state3x3 = applyMove(state3x3, 'R');
     state3x3 = applyMove(state3x3, 'U');
-    assert.notStrictEqual(state3x3.U[8], 'white');
+    assert.notStrictEqual(state3x3.U[8], 'orange');
 
     // 3. Pyraminx Scramble
     const initialPyr: GenericFaceletsState = {
