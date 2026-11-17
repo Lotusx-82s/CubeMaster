@@ -63,12 +63,12 @@ describe('Solvers: 2×2 Pocket Cube (Optimal Bidirectional BFS)', () => {
 
   function createSolved2x2(): GenericPuzzleState {
     return {
-      U: ['white', 'white', 'white', 'white'],
-      D: ['yellow', 'yellow', 'yellow', 'yellow'],
-      F: ['green', 'green', 'green', 'green'],
-      B: ['blue', 'blue', 'blue', 'blue'],
-      R: ['red', 'red', 'red', 'red'],
-      L: ['orange', 'orange', 'orange', 'orange'],
+      U: ['orange', 'orange', 'orange', 'orange'],
+      D: ['red', 'red', 'red', 'red'],
+      F: ['white', 'white', 'white', 'white'],
+      B: ['yellow', 'yellow', 'yellow', 'yellow'],
+      R: ['blue', 'blue', 'blue', 'blue'],
+      L: ['green', 'green', 'green', 'green'],
     };
   }
 
@@ -95,6 +95,20 @@ describe('Solvers: 2×2 Pocket Cube (Optimal Bidirectional BFS)', () => {
       verifier = verifier.move(m);
     }
     assert.strictEqual(verifier.isSolved(), true);
+  });
+
+  it('solves a complex 16-move 2×2 scramble with D, L, B moves in <= 11 moves', async () => {
+    const scramble = ['R', 'U', "R'", 'F', 'D', 'L2', 'B', "U'", 'R2', "F'", 'D2', 'L', 'B2', 'R', "U'", 'F'];
+    // Use reconstructed 2x2 state
+    const { reconstructAndValidate2x2State } = await import('../../simulatorAdapters/moveNormalizer.ts');
+    const res = reconstructAndValidate2x2State(scramble);
+    assert.strictEqual(res.isValid, true);
+
+    const solveResult = await solver.solve(res.state);
+    assert.strictEqual(solveResult.success, true);
+    assert.strictEqual(solveResult.isVerified, true);
+    assert.ok(solveResult.totalMoves > 0 && solveResult.totalMoves <= 11, `Expected <= 11 moves, got ${solveResult.totalMoves}`);
+    assert.strictEqual(solveResult.steps.length, solveResult.totalMoves);
   });
 });
 

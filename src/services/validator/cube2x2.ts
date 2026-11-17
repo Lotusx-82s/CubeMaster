@@ -28,16 +28,6 @@ const OPPOSITE_PAIRS_2X2: [CubeColor, CubeColor][] = [
   ['blue', 'green'],
 ];
 
-function getPermutationParity(perm: number[]): number {
-  let inversions = 0;
-  for (let i = 0; i < perm.length; i++) {
-    for (let j = i + 1; j < perm.length; j++) {
-      if (perm[i] > perm[j]) inversions++;
-    }
-  }
-  return inversions % 2;
-}
-
 export function validateCube2x2(state: Record<string, (CubeColor | null)[]>): ValidationResult {
   const issues: ValidationIssue[] = [];
   const faces: FaceId[] = ['U', 'R', 'F', 'D', 'L', 'B'];
@@ -214,7 +204,7 @@ export function validateCube2x2(state: Record<string, (CubeColor | null)[]>): Va
     };
   }
 
-  // 5. Corner Orientation Parity
+  // 5. Corner Orientation Parity (twist sum must be a multiple of 3)
   if (totalTwist % 3 !== 0) {
     issues.push({
       type: 'error',
@@ -224,18 +214,9 @@ export function validateCube2x2(state: Record<string, (CubeColor | null)[]>): Va
     });
   }
 
-  // 6. Corner Permutation Parity
-  if (cornerPerm.length === 8) {
-    const parity = getPermutationParity(cornerPerm);
-    if (parity !== 0) {
-      issues.push({
-        type: 'error',
-        category: 'IMPOSSIBLE_PUZZLE_STATE',
-        title: '2×2 Permutation Parity Error',
-        message: `Odd corner permutation parity detected. A single swap of two 2×2 corner pieces is physically impossible.`,
-      });
-    }
-  }
+  // Note: On a 2×2 Pocket Cube, corner permutation parity is NOT restricted to even permutations.
+  // A single quarter turn (e.g. U, R, F) is a 4-cycle of corners (an odd permutation) with no edges,
+  // making all permutations in S8 with twist sum ≡ 0 (mod 3) physically reachable and solvable.
 
   return {
     isValid: issues.length === 0,

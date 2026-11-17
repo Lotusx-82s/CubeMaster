@@ -8,7 +8,7 @@ interface CornerDef2x2 {
   colors: [CubeColor, CubeColor, CubeColor];
 }
 
-const CORNERS_2X2: CornerDef2x2[] = [
+export const CORNERS_2X2: CornerDef2x2[] = [
   { id: 'UFL', name: 'Up-Front-Left', slots: ['U', 2, 'F', 0, 'L', 1], colors: ['orange', 'white', 'green'] },
   { id: 'UFR', name: 'Up-Front-Right', slots: ['U', 3, 'R', 0, 'F', 1], colors: ['orange', 'blue', 'white'] },
   { id: 'UBR', name: 'Up-Back-Right', slots: ['U', 1, 'B', 0, 'R', 1], colors: ['orange', 'yellow', 'blue'] },
@@ -45,11 +45,11 @@ export class Cube2x2Model {
 
   applyU(): Cube2x2Model {
     const next = this.clone();
-    const p3 = this.cp[3], o3 = this.co[3];
-    next.cp[3] = this.cp[2]; next.co[3] = this.co[2];
-    next.cp[2] = this.cp[1]; next.co[2] = this.co[1];
-    next.cp[1] = this.cp[0]; next.co[1] = this.co[0];
-    next.cp[0] = p3;         next.co[0] = o3;
+    const p0 = this.cp[0], o0 = this.co[0];
+    next.cp[0] = this.cp[1]; next.co[0] = this.co[1];
+    next.cp[1] = this.cp[2]; next.co[1] = this.co[2];
+    next.cp[2] = this.cp[3]; next.co[2] = this.co[3];
+    next.cp[3] = p0;         next.co[3] = o0;
     return next;
   }
 
@@ -73,28 +73,136 @@ export class Cube2x2Model {
     return next;
   }
 
+  applyD(): Cube2x2Model {
+    const next = this.clone();
+    const p4 = this.cp[4], o4 = this.co[4];
+    next.cp[4] = this.cp[7]; next.co[4] = this.co[7];
+    next.cp[7] = this.cp[6]; next.co[7] = this.co[6];
+    next.cp[6] = this.cp[5]; next.co[6] = this.co[5];
+    next.cp[5] = p4;         next.co[5] = o4;
+    return next;
+  }
+
+  applyL(): Cube2x2Model {
+    const next = this.clone();
+    const p0 = this.cp[0], o0 = this.co[0];
+    next.cp[0] = this.cp[3]; next.co[0] = (this.co[3] + 1) % 3;
+    next.cp[3] = this.cp[7]; next.co[3] = (this.co[7] + 2) % 3;
+    next.cp[7] = this.cp[4]; next.co[7] = (this.co[4] + 1) % 3;
+    next.cp[4] = p0;         next.co[4] = (o0 + 2) % 3;
+    return next;
+  }
+
+  applyB(): Cube2x2Model {
+    const next = this.clone();
+    const p2 = this.cp[2], o2 = this.co[2];
+    next.cp[2] = this.cp[6]; next.co[2] = (this.co[6] + 2) % 3;
+    next.cp[6] = this.cp[7]; next.co[6] = (this.co[7] + 1) % 3;
+    next.cp[7] = this.cp[3]; next.co[7] = (this.co[3] + 2) % 3;
+    next.cp[3] = p2;         next.co[3] = (o2 + 1) % 3;
+    return next;
+  }
+
   move(m: string): Cube2x2Model {
-    switch (m) {
-      case 'U': return this.applyU();
-      case "U'": return this.applyU().applyU().applyU();
-      case 'U2': return this.applyU().applyU();
-      case 'R': return this.applyR();
-      case "R'": return this.applyR().applyR().applyR();
-      case 'R2': return this.applyR().applyR();
-      case 'F': return this.applyF();
-      case "F'": return this.applyF().applyF().applyF();
-      case 'F2': return this.applyF().applyF();
-      default: return this;
+    const f = m[0];
+    const isDouble = m.includes('2');
+    const isPrime = m.includes("'");
+    const count = isDouble ? 2 : isPrime ? 3 : 1;
+    let res: Cube2x2Model = this.clone();
+    for (let i = 0; i < count; i++) {
+      if (f === 'U') res = res.applyU();
+      else if (f === 'R') res = res.applyR();
+      else if (f === 'F') res = res.applyF();
+      else if (f === 'D') res = res.applyD();
+      else if (f === 'L') res = res.applyL();
+      else if (f === 'B') res = res.applyB();
     }
+    return res;
   }
 }
 
-const MOVES_2X2 = ['U', "U'", 'U2', 'R', "R'", 'R2', 'F', "F'", 'F2'];
-const INVERSE_2X2: Record<string, string> = {
-  'U': "U'", "U'": 'U', 'U2': 'U2',
-  'R': "R'", "R'": 'R', 'R2': 'R2',
-  'F': "F'", "F'": 'F', 'F2': 'F2',
-};
+export const MOVES_2X2 = [
+  'U', "U'", 'U2',
+  'R', "R'", 'R2',
+  'F', "F'", 'F2',
+  'D', "D'", 'D2',
+  'L', "L'", 'L2',
+  'B', "B'", 'B2',
+];
+
+const FACE_INDICES: Record<string, number> = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
+
+// Pruning table coordinates
+function getOrientationCoord(co: number[]): number {
+  let res = 0;
+  for (let i = 0; i < 7; i++) {
+    res = res * 3 + co[i];
+  }
+  return res;
+}
+
+const FACTORIALS = [5040, 720, 120, 24, 6, 2, 1, 1];
+function getPermutationCoord(cp: number[]): number {
+  let val = 0;
+  for (let i = 0; i < 7; i++) {
+    let count = 0;
+    for (let j = i + 1; j < 8; j++) {
+      if (cp[j] < cp[i]) count++;
+    }
+    val += count * FACTORIALS[i];
+  }
+  return val;
+}
+
+// Lazily computed pattern database pruning tables
+let oriPrun: Int8Array | null = null;
+let permPrun: Int8Array | null = null;
+
+function ensurePruningTables(): void {
+  if (oriPrun && permPrun) return;
+
+  // 1. Orientation pruning table (size 2,187)
+  oriPrun = new Int8Array(2187).fill(-1);
+  oriPrun[0] = 0;
+  let oriQueue = [new Cube2x2Model()];
+  let oriDep = 0;
+  while (oriQueue.length > 0) {
+    const nextQ: Cube2x2Model[] = [];
+    oriDep++;
+    for (const s of oriQueue) {
+      for (const m of MOVES_2X2) {
+        const ns = s.move(m);
+        const coord = getOrientationCoord(ns.co);
+        if (oriPrun[coord] === -1) {
+          oriPrun[coord] = oriDep;
+          nextQ.push(ns);
+        }
+      }
+    }
+    oriQueue = nextQ;
+  }
+
+  // 2. Permutation pruning table (size 40,320)
+  permPrun = new Int8Array(40320).fill(-1);
+  permPrun[0] = 0;
+  let permQueue = [new Cube2x2Model()];
+  let permDep = 0;
+  while (permQueue.length > 0) {
+    const nextQ: Cube2x2Model[] = [];
+    permDep++;
+    for (const cur of permQueue) {
+      for (const m of MOVES_2X2) {
+        const ns = cur.move(m);
+        const coord = getPermutationCoord(ns.cp);
+        if (permPrun[coord] === -1) {
+          permPrun[coord] = permDep;
+          nextQ.push(ns);
+        }
+      }
+    }
+    permQueue = nextQ;
+  }
+}
 
 /**
  * Extracts Cube2x2Model representation from generic state
@@ -118,7 +226,7 @@ export function extract2x2Model(state: GenericPuzzleState): Cube2x2Model {
       const targetSet = new Set(target.colors);
       if (targetSet.has(c1) && targetSet.has(c2) && targetSet.has(c3)) {
         matchedIdx = targetIdx;
-        const udColor = target.colors[0]; // white or yellow
+        const udColor = target.colors[0]; // orange or red
         if (c1 === udColor) twist = 0;
         else if (c2 === udColor) twist = 1;
         else if (c3 === udColor) twist = 2;
@@ -155,6 +263,9 @@ export function describeMove2x2(move: string): SolutionStep {
     U: 'Up (Orange)',
     R: 'Right (Blue)',
     F: 'Front (White)',
+    D: 'Down (Red)',
+    L: 'Left (Green)',
+    B: 'Back (Yellow)',
   };
 
   const name = faceNames[face] || face;
@@ -205,13 +316,13 @@ export function modelTo2x2GenericState(model: Cube2x2Model): GenericPuzzleState 
 }
 
 export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
-  id = 'bfs-ortega-2x2';
-  name = 'CubeMaster 2×2 Optimal BFS Solver';
+  id = 'ida-optimal-2x2';
+  name = 'CubeMaster 2×2 Optimal IDA* Solver';
   puzzleType = '2x2' as const;
-  description = 'Optimal bidirectional search algorithm for 2×2 Pocket Cubes that finds solutions in 11 moves or fewer.';
+  description = 'Optimal Iterative Deepening A* (IDA*) algorithm with pattern database heuristics, finding solutions in 11 moves or fewer.';
   isReady = true;
 
-  async solve(state: GenericPuzzleState, timeoutMs = 5000): Promise<SolverResult> {
+  async solve(state: GenericPuzzleState, timeoutMs = 8000): Promise<SolverResult> {
     const startTime = performance.now();
 
     // 1. Check if already solved
@@ -242,88 +353,78 @@ export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
       };
     }
 
-    // 3. Bidirectional BFS Search
-    const forwardMap = new Map<string, string[]>();
-    const backwardMap = new Map<string, string[]>();
+    // 3. Ensure pruning tables are loaded
+    ensurePruningTables();
+    const oriTable = oriPrun!;
+    const permTable = permPrun!;
 
-    const solvedModel = new Cube2x2Model();
-    forwardMap.set(startModel.key(), []);
-    backwardMap.set(solvedModel.key(), []);
-
-    let fQueue = [startModel];
-    let bQueue = [solvedModel];
-
+    // 4. IDA* Search
     let foundMoves: string[] | null = null;
-    const maxDepth = 6; // Max 6 in each direction = 12 moves (God's number is 11)
+    let timedOut = false;
 
-    for (let depth = 0; depth < maxDepth; depth++) {
+    function search(
+      current: Cube2x2Model,
+      g: number,
+      threshold: number,
+      lastFace: number,
+      path: string[]
+    ): string[] | null {
       if (performance.now() - startTime > timeoutMs) {
-        return {
-          success: false,
-          algorithmName: this.name,
-          totalMoves: 0,
-          moves: [],
-          steps: [],
-          executionTimeMs: Math.round(performance.now() - startTime),
-          isVerified: false,
-          error: `2×2 Solver timed out after ${timeoutMs}ms.`,
-        };
+        timedOut = true;
+        return null;
       }
 
-      // Expand Forward layer
-      const nextFQueue: Cube2x2Model[] = [];
-      for (const current of fQueue) {
-        const path = forwardMap.get(current.key())!;
-        const lastFace = path.length > 0 ? path[path.length - 1][0] : '';
+      const hOri = oriTable[getOrientationCoord(current.co)];
+      const hPerm = permTable[getPermutationCoord(current.cp)];
+      const h = Math.max(hOri, hPerm);
 
-        for (const m of MOVES_2X2) {
-          if (m[0] === lastFace) continue;
-          const nextModel = current.move(m);
-          const k = nextModel.key();
+      if (g + h > threshold) return null;
+      if (current.isSolved()) return path;
 
-          if (backwardMap.has(k)) {
-            const bPath = backwardMap.get(k)!;
-            foundMoves = [...path, m, ...bPath];
-            break;
-          }
+      for (const m of MOVES_2X2) {
+        const f = FACE_INDICES[m[0]];
+        if (f === lastFace) continue;
+        // Commutative pair restrictions: opposite faces U(0)-D(3), R(1)-L(4), F(2)-B(5)
+        if (f === 0 && lastFace === 3) continue;
+        if (f === 1 && lastFace === 4) continue;
+        if (f === 2 && lastFace === 5) continue;
 
-          if (!forwardMap.has(k)) {
-            forwardMap.set(k, [...path, m]);
-            nextFQueue.push(nextModel);
-          }
-        }
-        if (foundMoves) break;
+        const nextModel = current.move(m);
+        path.push(m);
+        const res = search(nextModel, g + 1, threshold, f, path);
+        if (res) return res;
+        path.pop();
+        if (timedOut) return null;
       }
-      if (foundMoves) break;
-      fQueue = nextFQueue;
 
-      // Expand Backward layer
-      const nextBQueue: Cube2x2Model[] = [];
-      for (const current of bQueue) {
-        const path = backwardMap.get(current.key())!;
-        const lastFace = path.length > 0 ? path[0][0] : '';
+      return null;
+    }
 
-        for (const m of MOVES_2X2) {
-          if (m[0] === lastFace) continue;
-          const invM = INVERSE_2X2[m];
-          const nextModel = current.move(invM);
-          const k = nextModel.key();
-
-          if (forwardMap.has(k)) {
-            const fPath = forwardMap.get(k)!;
-            foundMoves = [...fPath, m, ...path];
-            break;
-          }
-
-          if (!backwardMap.has(k)) {
-            backwardMap.set(k, [m, ...path]);
-            nextBQueue.push(nextModel);
-          }
-        }
-        if (foundMoves) break;
+    // Search depths up to God's number (11 moves)
+    for (let depth = 1; depth <= 11; depth++) {
+      if (performance.now() - startTime > timeoutMs) {
+        timedOut = true;
+        break;
       }
-      if (foundMoves) break;
-      bQueue = nextBQueue;
+      const path: string[] = [];
+      const res = search(startModel, 0, depth, -1, path);
+      if (res) {
+        foundMoves = res;
+        break;
+      }
+    }
+
+    if (timedOut) {
+      return {
+        success: false,
+        algorithmName: this.name,
+        totalMoves: 0,
+        moves: [],
+        steps: [],
+        executionTimeMs: Math.round(performance.now() - startTime),
+        isVerified: false,
+        error: `2×2 Solver timed out after ${timeoutMs}ms.`,
+      };
     }
 
     if (!foundMoves) {
@@ -339,7 +440,7 @@ export class Pocket2x2Solver implements IPuzzleSolver<GenericPuzzleState> {
       };
     }
 
-    // 4. Verify solution by simulating on model and collecting snapshots
+    // 5. Verify solution by simulating on model and generating snapshots
     let verifier = startModel.clone();
     const steps: SolutionStep[] = [];
     for (const m of foundMoves) {

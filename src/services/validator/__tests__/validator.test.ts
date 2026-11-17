@@ -141,12 +141,12 @@ describe('3×3 Rubik\'s Cube Validation Engine', () => {
 describe('2×2 Pocket Cube Validation Engine', () => {
   function createSolved2x2(): Record<string, (CubeColor | null)[]> {
     return {
-      U: Array(4).fill('white'),
-      D: Array(4).fill('yellow'),
-      F: Array(4).fill('green'),
-      B: Array(4).fill('blue'),
-      R: Array(4).fill('red'),
-      L: Array(4).fill('orange'),
+      U: Array(4).fill('orange'),
+      D: Array(4).fill('red'),
+      F: Array(4).fill('white'),
+      B: Array(4).fill('yellow'),
+      R: Array(4).fill('blue'),
+      L: Array(4).fill('green'),
     };
   }
 
@@ -168,27 +168,34 @@ describe('2×2 Pocket Cube Validation Engine', () => {
 
   it('detects single twisted corner parity on 2×2', () => {
     const state = createSolved2x2();
-    // Twist UFL corner: U[2], F[0], L[1] (white, green, orange)
-    state.U[2] = 'orange';
-    state.F[0] = 'white';
-    state.L[1] = 'green';
+    // Twist UFL corner: U[2], F[0], L[1] (solved: orange, white, green)
+    state.U[2] = 'white';
+    state.F[0] = 'green';
+    state.L[1] = 'orange';
 
     const result = validateCube2x2(state);
     assert.equal(result.isValid, false);
     assert.ok(result.issues.some(i => i.title.includes('Corner Orientation Parity')));
   });
 
-  it('detects permutation parity error on 2×2', () => {
+  it('detects impossible corner containing opposite colors on 2×2', () => {
     const state = createSolved2x2();
-    // Swap UFL and UFR corners
-    // UFL: U[2], F[0], L[1] (white, green, orange)
-    // UFR: U[3], R[0], F[1] (white, red, green)
-    state.U[2] = 'white'; state.F[0] = 'red'; state.L[1] = 'green';
-    state.U[3] = 'white'; state.R[0] = 'green'; state.F[1] = 'orange';
+    state.F[0] = 'red';   // UFL gets red instead of white
+    state.D[0] = 'white'; // DFL gets white instead of red
 
     const result = validateCube2x2(state);
     assert.equal(result.isValid, false);
-    assert.ok(result.issues.some(i => i.title.includes('Permutation Parity')));
+    assert.ok(result.issues.some(i => i.title.includes('Impossible 2×2 Corner Colors')));
+  });
+
+  it('correctly validates a 2×2 state with swapped corners (valid 2×2 permutation)', () => {
+    const state = createSolved2x2();
+    // Swap UFL (orange, white, green) and UFR (orange, blue, white)
+    state.U[2] = 'orange'; state.F[0] = 'blue';  state.L[1] = 'white';
+    state.U[3] = 'orange'; state.R[0] = 'green'; state.F[1] = 'white';
+
+    const result = validateCube2x2(state);
+    assert.equal(result.isValid, true);
   });
 });
 
