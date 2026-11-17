@@ -622,13 +622,21 @@ const Scene4x4: React.FC<{
   return (
     <group scale={0.65}>
       {cubies.map(([x, y, z], i) => {
+        // Compute exact 4x4 sticker indices based on 3D position
+        const rIdx = x === 1.5 ? Math.round(1.5 - y) * 4 + Math.round(1.5 - z) : 0;
+        const lIdx = x === -1.5 ? Math.round(1.5 - y) * 4 + Math.round(z + 1.5) : 0;
+        const uIdx = y === 1.5 ? Math.round(z + 1.5) * 4 + Math.round(x + 1.5) : 0;
+        const dIdx = y === -1.5 ? Math.round(1.5 - z) * 4 + Math.round(x + 1.5) : 0;
+        const fIdx = z === 1.5 ? Math.round(1.5 - y) * 4 + Math.round(x + 1.5) : 0;
+        const bIdx = z === -1.5 ? Math.round(1.5 - y) * 4 + Math.round(1.5 - x) : 0;
+
         const materials = [
-          new THREE.MeshStandardMaterial({ color: x === 1.5 ? getColor('R', i % 16, 'red') : PLASTIC_BLACK, roughness: 0.2 }),
-          new THREE.MeshStandardMaterial({ color: x === -1.5 ? getColor('L', i % 16, 'orange') : PLASTIC_BLACK, roughness: 0.2 }),
-          new THREE.MeshStandardMaterial({ color: y === 1.5 ? getColor('U', i % 16, 'white') : PLASTIC_BLACK, roughness: 0.2 }),
-          new THREE.MeshStandardMaterial({ color: y === -1.5 ? getColor('D', i % 16, 'yellow') : PLASTIC_BLACK, roughness: 0.2 }),
-          new THREE.MeshStandardMaterial({ color: z === 1.5 ? getColor('F', i % 16, 'green') : PLASTIC_BLACK, roughness: 0.2 }),
-          new THREE.MeshStandardMaterial({ color: z === -1.5 ? getColor('B', i % 16, 'blue') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: x === 1.5 ? getColor('R', rIdx, 'blue') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: x === -1.5 ? getColor('L', lIdx, 'green') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: y === 1.5 ? getColor('U', uIdx, 'orange') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: y === -1.5 ? getColor('D', dIdx, 'red') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: z === 1.5 ? getColor('F', fIdx, 'white') : PLASTIC_BLACK, roughness: 0.2 }),
+          new THREE.MeshStandardMaterial({ color: z === -1.5 ? getColor('B', bIdx, 'yellow') : PLASTIC_BLACK, roughness: 0.2 }),
         ];
         return (
           <mesh key={i} position={[x * 0.99, y * 0.99, z * 0.99]} material={materials}>
@@ -640,22 +648,82 @@ const Scene4x4: React.FC<{
   );
 };
 
-const SceneMegaminx: React.FC = () => {
-  const dodecaGeo = useMemo(() => {
-    const geo = new THREE.DodecahedronGeometry(1.4, 0);
-    geo.computeVertexNormals();
-    return geo;
+const MEGAMINX_FACE_COLORS: Record<string, string> = {
+  U: '#ffffff',
+  F: '#22c55e',
+  L: '#a855f7',
+  BL: '#3b82f6',
+  BR: '#ef4444',
+  R: '#eab308',
+  D: '#64748b',
+  DF: '#fef08a',
+  DL: '#ec4899',
+  DBL: '#38bdf8',
+  DBR: '#4ade80',
+  DR: '#f97316',
+};
+
+const SceneMegaminx: React.FC<{
+  genericState?: Record<string, (CubeColor | null)[]>;
+}> = ({ genericState }) => {
+  const pentagonPlates = useMemo(() => {
+    // 12 Face normal directions of a regular dodecahedron
+    const phi = (1 + Math.sqrt(5)) / 2;
+    const rawNormals: [number, number, number, string][] = [
+      [0, 1, phi, 'F'],
+      [0, 1, -phi, 'BR'],
+      [0, -1, phi, 'DF'],
+      [0, -1, -phi, 'DBR'],
+      [1, phi, 0, 'R'],
+      [1, -phi, 0, 'DR'],
+      [-1, phi, 0, 'U'],
+      [-1, -phi, 0, 'D'],
+      [phi, 0, 1, 'BL'],
+      [-phi, 0, 1, 'L'],
+      [phi, 0, -1, 'DBL'],
+      [-phi, 0, -1, 'DL'],
+    ];
+
+    return rawNormals.map(([nx, ny, nz, faceId]) => {
+      const dir = new THREE.Vector3(nx, ny, nz).normalize();
+      const pos = dir.clone().multiplyScalar(1.35);
+      const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      return { faceId, pos, quat };
+    });
   }, []);
 
+  const getFaceColor = (faceId: string) => {
+    const col = genericState?.[faceId]?.[0];
+    if (col && CUBE_COLORS[col]) return CUBE_COLORS[col].hex;
+    return MEGAMINX_FACE_COLORS[faceId] || '#9333ea';
+  };
+
   return (
-    <group scale={1.08}>
-      <mesh geometry={dodecaGeo}>
-        <meshStandardMaterial color="#9333ea" roughness={0.25} metalness={0.15} />
+    <group scale={1.05}>
+      {/* 12 Colored Pentagonal Face Caps */}
+      {pentagonPlates.map(({ faceId, pos, quat }) => (
+        <group key={faceId} position={pos} quaternion={quat}>
+          <mesh>
+            <circleGeometry args={[0.78, 5]} />
+            <meshStandardMaterial
+              color={getFaceColor(faceId)}
+              roughness={0.2}
+              metalness={0.1}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          <lineSegments>
+            <edgesGeometry args={[new THREE.CircleGeometry(0.79, 5)]} />
+            <lineBasicMaterial color="#0f172a" linewidth={2} />
+          </lineSegments>
+        </group>
+      ))}
+
+      {/* Internal Dodecahedron Core */}
+      <mesh>
+        <dodecahedronGeometry args={[1.32, 0]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.8} />
       </mesh>
-      <lineSegments>
-        <edgesGeometry args={[new THREE.DodecahedronGeometry(1.41, 0)]} />
-        <lineBasicMaterial color="#facc15" linewidth={2} />
-      </lineSegments>
     </group>
   );
 };

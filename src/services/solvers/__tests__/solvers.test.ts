@@ -12,6 +12,9 @@ import {
 import { createSolvedCubeState, applyMoves, isCubeSolved } from '../../cubeState.ts';
 import { applyPyraminxMove, isPyraminxSolved } from '../pyraminx.ts';
 import { applySkewbMove, isSkewbSolved } from '../skewb.ts';
+import { is4x4Solved } from '../cube4x4.ts';
+import { isMegaminxSolved } from '../megaminx.ts';
+import { applyMove4x4, applyMoveMegaminx, createSolvedMegaminxState } from '../../simulatorAdapters/moveNormalizer.ts';
 import { Cube2x2Model } from '../pocket2x2.ts';
 import type { GenericPuzzleState } from '../types.ts';
 
@@ -188,25 +191,63 @@ describe('Solvers: Skewb (Corner-Turning Engine)', () => {
   });
 });
 
-describe('Solvers: Big Cube & Dodecahedron Unsupported Status Safety', () => {
-  it('4×4 solver safely reports in-development status and refuses false moves', async () => {
-    const solver = new Cube4x4Solver();
-    assert.strictEqual(solver.isReady, false);
+describe('Solvers: 4×4 Rubik\'s Revenge (Reduction & Parity Engine)', () => {
+  const solver = new Cube4x4Solver();
 
-    const result = await solver.solve({});
-    assert.strictEqual(result.success, false);
-    assert.strictEqual(result.moves.length, 0);
-    assert.ok(result.error?.includes('in active development'));
+  function createSolved4x4(): GenericPuzzleState {
+    return {
+      U: Array(16).fill('orange'),
+      L: Array(16).fill('green'),
+      F: Array(16).fill('white'),
+      R: Array(16).fill('blue'),
+      B: Array(16).fill('yellow'),
+      D: Array(16).fill('red'),
+    };
+  }
+
+  it('correctly handles an already solved 4×4', async () => {
+    const state = createSolved4x4();
+    const result = await solver.solve(state);
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.totalMoves, 0);
+    assert.strictEqual(result.isVerified, true);
   });
 
-  it('Megaminx solver safely reports in-development status and refuses false moves', async () => {
-    const solver = new MegaminxSolver();
-    assert.strictEqual(solver.isReady, false);
+  it('solves a 4×4 move sequence and verifies', async () => {
+    let state = createSolved4x4();
+    state = applyMove4x4(state, 'U');
+    state = applyMove4x4(state, 'R');
 
-    const result = await solver.solve({});
-    assert.strictEqual(result.success, false);
-    assert.strictEqual(result.moves.length, 0);
-    assert.ok(result.error?.includes('in active development'));
+    assert.strictEqual(is4x4Solved(state), false);
+
+    const result = await solver.solve(state);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.isVerified, true);
+  });
+});
+
+describe('Solvers: Megaminx (Star & Last Layer Engine)', () => {
+  const solver = new MegaminxSolver();
+
+  it('correctly handles an already solved Megaminx', async () => {
+    const state = createSolvedMegaminxState();
+    const result = await solver.solve(state);
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.totalMoves, 0);
+    assert.strictEqual(result.isVerified, true);
+  });
+
+  it('solves a Megaminx move sequence and verifies', async () => {
+    let state = createSolvedMegaminxState();
+    state = applyMoveMegaminx(state, 'U');
+
+    assert.strictEqual(isMegaminxSolved(state), false);
+
+    const result = await solver.solve(state);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.isVerified, true);
   });
 });
 

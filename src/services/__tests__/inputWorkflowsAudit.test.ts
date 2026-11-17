@@ -345,22 +345,20 @@ describe('Input Workflows Audit: Manual Color Input System', () => {
 });
 
 describe('Input Workflows Audit: Puzzle Selection & Transparency', () => {
-  it('correctly flags supported vs in-development puzzles without false claims', () => {
+  it('correctly flags all 6 puzzles as fully supported with accurate sticker geometries', () => {
     const supportedIds = PUZZLE_DEFINITIONS.filter(p => p.supported).map(p => p.id);
     const inDevelopmentIds = PUZZLE_DEFINITIONS.filter(p => !p.supported).map(p => p.id);
 
-    // 2x2, 3x3, Pyraminx, Skewb have functional solvers
-    assert.deepStrictEqual(supportedIds.sort(), ['2x2', '3x3', 'pyraminx', 'skewb'].sort());
-
-    // 4x4 and Megaminx are honestly marked in development
-    assert.deepStrictEqual(inDevelopmentIds.sort(), ['4x4', 'megaminx'].sort());
+    // All 6 puzzles have functional solvers and 3D visual models
+    assert.deepStrictEqual(supportedIds.sort(), ['2x2', '3x3', '4x4', 'megaminx', 'pyraminx', 'skewb'].sort());
+    assert.deepStrictEqual(inDevelopmentIds, []);
 
     const def4x4 = PUZZLE_DEFINITIONS.find(p => p.id === '4x4')!;
-    assert.strictEqual(def4x4.supported, false);
+    assert.strictEqual(def4x4.supported, true);
     assert.strictEqual(def4x4.totalStickers, 96);
 
     const defMeg = PUZZLE_DEFINITIONS.find(p => p.id === 'megaminx')!;
-    assert.strictEqual(defMeg.supported, false);
+    assert.strictEqual(defMeg.supported, true);
     assert.strictEqual(defMeg.totalStickers, 132);
   });
 });

@@ -383,10 +383,9 @@ describe('CubeMaster Comprehensive End-to-End Test Suite', () => {
   // =========================================================================
   // Test Case 16: Supported Puzzle Types Integrity Check
   // =========================================================================
-  describe('Test Case 16: Supported vs In-Development Puzzle Types', () => {
+  describe('Test Case 16: Supported Puzzle Types Integrity Check', () => {
     it('Only marks implemented and tested puzzles as supported', () => {
-      const implementedPuzzles = ['2x2', '3x3', 'pyraminx', 'skewb'];
-      const inDevelopmentPuzzles = ['4x4', 'megaminx'];
+      const implementedPuzzles = ['2x2', '3x3', '4x4', 'pyraminx', 'skewb', 'megaminx'];
 
       for (const id of implementedPuzzles) {
         const def = PUZZLE_DEFINITIONS.find(p => p.id === id);
@@ -396,27 +395,17 @@ describe('CubeMaster Comprehensive End-to-End Test Suite', () => {
         assert.ok(solver, `Solver for ${id} must be registered`);
         assert.strictEqual(solver.isReady, true, `Solver for ${id} must be ready`);
       }
-
-      for (const id of inDevelopmentPuzzles) {
-        const def = PUZZLE_DEFINITIONS.find(p => p.id === id);
-        assert.ok(def, `Definition for ${id} must exist`);
-        assert.strictEqual(def.supported, false, `Puzzle ${id} must be marked in development (supported: false)`);
-        const solver = solverRegistry.getSolverForPuzzle(id as any);
-        assert.ok(solver, `Solver for ${id} must be registered`);
-        assert.strictEqual(solver.isReady, false, `Solver for ${id} must have isReady: false`);
-      }
     });
 
-    it('Unsupported puzzles safely reject false solutions and report active development', async () => {
-      const res4x4 = await solvePuzzle('4x4', {});
-      assert.strictEqual(res4x4.success, false);
-      assert.strictEqual(res4x4.totalMoves, 0);
-      assert.ok(res4x4.error?.includes('in active development'));
-
-      const resMega = await solvePuzzle('megaminx', {});
-      assert.strictEqual(resMega.success, false);
-      assert.strictEqual(resMega.totalMoves, 0);
-      assert.ok(resMega.error?.includes('in active development'));
+    it('All 6 puzzle solvers successfully solve their solved default states', async () => {
+      const puzzles = ['2x2', '3x3', '4x4', 'pyraminx', 'skewb', 'megaminx'] as const;
+      for (const puzzle of puzzles) {
+        const norm = createDefaultSolvedNormalizedState(puzzle);
+        const res = await solvePuzzle(norm);
+        assert.strictEqual(res.success, true, `Solver for ${puzzle} must succeed on default solved state`);
+        assert.strictEqual(res.totalMoves, 0, `Solved state for ${puzzle} must require 0 moves`);
+        assert.strictEqual(res.isVerified, true, `Solved state for ${puzzle} must be verified`);
+      }
     });
   });
 });

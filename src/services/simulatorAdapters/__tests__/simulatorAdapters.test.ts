@@ -170,10 +170,10 @@ describe('Simulator Adapter Architecture & URL Import Comprehensive Test Suite',
   });
 
   // =========================================================================
-  // SCENARIO 4: URL Containing a Scrambled 4×4 (Supported Extraction + Honest Solver Status)
+  // SCENARIO 4: URL Containing a Scrambled 4×4 (Supported Extraction + Genuine Solver)
   // =========================================================================
   describe('Scenario 4: URL Containing a Scrambled 4×4', () => {
-    it('extracts 4×4 configuration from Alg.cubing.net, validates state, and honestly reports solver in-development status', async () => {
+    it('extracts 4×4 configuration from Alg.cubing.net, validates state, and generates verified solution', async () => {
       const url = 'https://alg.cubing.net/?setup=R_U_R-_U-_F2_D_L2_B-&puzzle=4x4x4';
       
       const importResult = parseUrlInput(url);
@@ -188,13 +188,11 @@ describe('Simulator Adapter Architecture & URL Import Comprehensive Test Suite',
       const validation = validatePuzzleState(normalized);
       assert.strictEqual(validation.isValid, true);
 
-      // Solve attempt: must safely report in active development and NEVER return fake moves
+      // Solve attempt: now fully supported with genuine solver
       const solveResult = await solvePuzzle(normalized);
-      assert.strictEqual(solveResult.success, false);
-      assert.strictEqual(solveResult.totalMoves, 0);
-      assert.deepStrictEqual(solveResult.moves, []);
-      assert.strictEqual(solveResult.isVerified, false);
-      assert.ok(solveResult.error?.includes('active development'), 'Must clearly explain that 4×4 reduction solver is in active development');
+      assert.strictEqual(solveResult.success, true);
+      assert.ok(solveResult.moves.length > 0);
+      assert.strictEqual(solveResult.isVerified, true);
     });
 
     it('extracts 4×4 from CubeDB.net', () => {

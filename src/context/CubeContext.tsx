@@ -34,6 +34,7 @@ import type { CubeContextType } from './cubeContextInstance';
 import { Cube2x2Model, modelTo2x2GenericState } from '../services/solvers/pocket2x2';
 import { applyPyraminxMove } from '../services/solvers/pyraminx';
 import { applySkewbMove } from '../services/solvers/skewb';
+import { applyMove4x4, applyMoveMegaminx } from '../services/simulatorAdapters/moveNormalizer';
 
 function createInitialGenericState(puzzleId: PuzzleTypeId): Record<string, (CubeColor | null)[]> {
   const def = PUZZLE_DEFINITIONS.find(p => p.id === puzzleId) || PUZZLE_DEFINITIONS[1];
@@ -240,6 +241,34 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setScrambleMoves(moves);
       setGenericPuzzleState(current);
       setNormalizedPuzzleState(genericStateToNormalized('skewb', current, 'manual', { scrambleMoves: moves }));
+    } else if (selectedPuzzle === '4x4') {
+      const moves4x4 = ['U', "U'", 'U2', 'D', "D'", 'D2', 'R', "R'", 'R2', 'L', "L'", 'L2', 'F', "F'", 'F2', 'B', "B'", 'B2', 'Uw', "Uw'", 'Rw', "Rw'", 'Fw', "Fw'"];
+      let current = createInitialGenericState('4x4');
+      let lastMove = '';
+      for (let i = 0; i < Math.min(length, 20); i++) {
+        const valid = moves4x4.filter(m => m[0] !== lastMove[0]);
+        const m = valid[Math.floor(Math.random() * valid.length)];
+        current = applyMove4x4(current, m);
+        moves.push(m);
+        lastMove = m;
+      }
+      setScrambleMoves(moves);
+      setGenericPuzzleState(current);
+      setNormalizedPuzzleState(genericStateToNormalized('4x4', current, 'manual', { scrambleMoves: moves }));
+    } else if (selectedPuzzle === 'megaminx') {
+      const movesMega = ['U', "U'", 'U2', "U2'", 'F', "F'", 'R', "R'", 'L', "L'", 'BL', "BL'", 'BR', "BR'"];
+      let current = createInitialGenericState('megaminx');
+      let lastFace = '';
+      for (let i = 0; i < Math.min(length, 18); i++) {
+        const valid = movesMega.filter(m => m !== lastFace);
+        const m = valid[Math.floor(Math.random() * valid.length)];
+        current = applyMoveMegaminx(current, m);
+        moves.push(m);
+        lastFace = m;
+      }
+      setScrambleMoves(moves);
+      setGenericPuzzleState(current);
+      setNormalizedPuzzleState(genericStateToNormalized('megaminx', current, 'manual', { scrambleMoves: moves }));
     }
 
     setValidationResult(null);

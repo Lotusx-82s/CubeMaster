@@ -1,5 +1,7 @@
 import type { CubeColor, CubeState3x3, PuzzleTypeId, SolutionStep } from '../../types/cube.ts';
 
+export type { SolutionStep };
+
 export interface SolverPhase {
   name: string;
   description: string;
