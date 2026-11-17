@@ -1,7 +1,7 @@
 import type { CubeColor, CubeState3x3, FaceId, SolutionStep } from '../../types/cube.ts';
 import { isCubeSolved, cloneCubeState, applyMove, applyMoves } from '../cubeState.ts';
 import type { IPuzzleSolver, SolverResult } from './types.ts';
-import Cube from 'cubejs';
+import Cube from './kociembaEngine.ts';
 
 let isKociembaInitialized = false;
 
