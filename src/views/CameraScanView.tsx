@@ -26,8 +26,10 @@ import {
   sampleRoiPixels, 
   classifySampledColor, 
   getPuzzleRoiPoints, 
+  evaluateImageQuality,
   type ColorDetectionResult, 
-  type RoiPoint 
+  type RoiPoint,
+  type ImageQualityMetrics
 } from '../services/cvColorExtractor';
 import { parseCameraScanInput } from '../services/state';
 
@@ -59,6 +61,7 @@ export const CameraScanView: React.FC = () => {
   const [scannedFacesData, setScannedFacesData] = useState<Record<string, ColorDetectionResult[]>>({});
   
   // Current face detection result
+  const [qualityFeedback, setQualityFeedback] = useState<ImageQualityMetrics | null>(null);
   const [currentFaceDetections, setCurrentFaceDetections] = useState<ColorDetectionResult[]>(() => {
     const defaultColor = puzzleDef.faceNames[0]?.defaultColor || 'white';
     return Array(puzzleDef.stickersPerFace).fill(null).map(() => ({
@@ -128,8 +131,11 @@ export const CameraScanView: React.FC = () => {
         await updateCameraDevices();
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Camera access denied or device not found.';
-      setCameraError(`${message} You can upload a photo or use manual color entry.`);
+      const isDenied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+      const message = isDenied
+        ? 'Camera permission denied by browser. Please enable camera access in your browser settings/address bar, or use the "Upload Photo" tab or "Manual Color Input" instead.'
+        : err instanceof Error ? err.message : 'Camera access denied or device not found.';
+      setCameraError(message);
       setStreamActive(false);
     }
   }, [facingMode, updateCameraDevices]);
@@ -169,9 +175,13 @@ export const CameraScanView: React.FC = () => {
         } else {
           stream.getTracks().forEach(t => t.stop());
         }
-      } catch {
+      } catch (err: unknown) {
         if (isMounted) {
-          setCameraError('Camera access requires permission or device is unavailable. Try again or upload a photo.');
+          const isDenied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+          const message = isDenied
+            ? 'Camera permission denied by browser. Please enable camera access in your browser settings/address bar, or use the "Upload Photo" tab or "Manual Color Input" instead.'
+            : 'Camera access requires permission or device is unavailable. Try again or upload a photo.';
+          setCameraError(message);
         }
       }
     };
@@ -285,6 +295,10 @@ export const CameraScanView: React.FC = () => {
       const result = classifySampledColor(medianRgb, puzzleDef.colorSet);
       detectedList.push(result);
     }
+
+    // Evaluate image quality, sharpness and lighting
+    const quality = evaluateImageQuality(ctx, size, size);
+    setQualityFeedback(quality);
 
     setCurrentFaceDetections(detectedList);
   };
@@ -835,6 +849,14 @@ export const CameraScanView: React.FC = () => {
                 Each color is classified via CIELAB perceptual space. If lighting altered a facelet, tap it to manually select the true color.
               </p>
             </div>
+
+            {/* Image Quality Warning (Blur / Lighting) */}
+            {qualityFeedback?.warningMessage && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{qualityFeedback.warningMessage}</span>
+              </div>
+            )}
 
             {/* Sticker Grid Representation */}
             <div className={`aspect-square max-w-[280px] mx-auto p-3.5 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner grid gap-2.5 ${

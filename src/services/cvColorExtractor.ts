@@ -366,3 +366,82 @@ export function getPuzzleRoiPoints(puzzleId: string, stickersCount: number): Roi
   return points;
 }
 
+export interface ImageQualityMetrics {
+  isBlurry: boolean;
+  sharpnessScore: number;
+  brightnessScore: number;
+  isTooDark: boolean;
+  isTooBright: boolean;
+  warningMessage?: string;
+}
+
+/**
+ * Fast client-side image sharpness and lighting assessment for camera frames and photo uploads.
+ * Detects blurry, out-of-focus, underexposed, or overexposed captures to guide the user.
+ */
+export function evaluateImageQuality(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+): ImageQualityMetrics {
+  const imgData = ctx.getImageData(0, 0, width, height).data;
+  let totalLuma = 0;
+  let sampleCount = 0;
+  let totalGradient = 0;
+  let gradientCount = 0;
+
+  // Step every 4 pixels for high performance and low CPU overhead
+  const step = 4;
+  const stride = width * 4;
+
+  for (let y = 1; y < height - 1; y += step) {
+    for (let x = 1; x < width - 1; x += step) {
+      const idx = y * stride + x * 4;
+      const r = imgData[idx];
+      const g = imgData[idx + 1];
+      const b = imgData[idx + 2];
+      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+      totalLuma += luma;
+      sampleCount++;
+
+      // Compute horizontal and vertical gradients
+      const idxRight = idx + step * 4;
+      const idxDown = idx + step * stride;
+
+      if (idxRight < imgData.length && idxDown < imgData.length) {
+        const lumaRight = 0.299 * imgData[idxRight] + 0.587 * imgData[idxRight + 1] + 0.114 * imgData[idxRight + 2];
+        const lumaDown = 0.299 * imgData[idxDown] + 0.587 * imgData[idxDown + 1] + 0.114 * imgData[idxDown + 2];
+        const gradX = Math.abs(luma - lumaRight);
+        const gradY = Math.abs(luma - lumaDown);
+        totalGradient += Math.sqrt(gradX * gradX + gradY * gradY);
+        gradientCount++;
+      }
+    }
+  }
+
+  const brightnessScore = sampleCount > 0 ? Math.round(totalLuma / sampleCount) : 128;
+  const sharpnessScore = gradientCount > 0 ? Math.round((totalGradient / gradientCount) * 10) / 10 : 0;
+
+  const isTooDark = brightnessScore < 35;
+  const isTooBright = brightnessScore > 235;
+  const isBlurry = sharpnessScore < 6.5;
+
+  let warningMessage: string | undefined;
+  if (isBlurry) {
+    warningMessage = 'Blurry or unfocused image detected. Please hold the camera steady, ensure good lighting, or tap any sticker to manually adjust colors.';
+  } else if (isTooDark) {
+    warningMessage = 'Image is very dark. Please move to a brighter environment or turn on a light for accurate color recognition.';
+  } else if (isTooBright) {
+    warningMessage = 'Image has severe glare or overexposure. Avoid direct flashlight reflections on the stickers.';
+  }
+
+  return {
+    isBlurry,
+    sharpnessScore,
+    brightnessScore,
+    isTooDark,
+    isTooBright,
+    warningMessage,
+  };
+}
+
