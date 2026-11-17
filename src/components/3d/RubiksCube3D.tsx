@@ -205,7 +205,8 @@ export const RubiksCube3D: React.FC<RubiksCube3DProps> = ({
       <Canvas
         camera={{ position: [4.2, 3.2, 5], fov: 42 }}
         shadows
-        gl={{ antialias: true, alpha: true }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
         <ambientLight intensity={0.9} />
         <directionalLight position={[10, 15, 10]} intensity={1.5} castShadow />

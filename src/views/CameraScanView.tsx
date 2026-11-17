@@ -9,15 +9,19 @@ import {
   Check, 
   AlertCircle, 
   ChevronRight, 
+  ChevronDown,
   ShieldCheck, 
   ShieldAlert, 
   SunMedium, 
   Sparkles, 
   SwitchCamera, 
   X, 
-  Edit3
+  Edit3,
+  Compass,
+  Lightbulb
 } from 'lucide-react';
 import { useCube } from '../context';
+import { useNotification } from '../context/NotificationContext';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import type { CubeColor, FaceId } from '../types/cube';
 import { CUBE_COLORS } from '../types/cube';
@@ -43,6 +47,7 @@ export const CameraScanView: React.FC = () => {
     setInputMode,
     setView 
   } = useCube();
+  const { success, error: notifyError, warning, info } = useNotification();
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
 
   const [activeFaceId, setActiveFaceId] = useState<string>(() => puzzleDef.faceNames[0]?.id || 'U');
@@ -77,6 +82,9 @@ export const CameraScanView: React.FC = () => {
 
   // Uploaded photo image source
   const [uploadedImageSrc, setUploadedImageSrc] = useState<string | null>(null);
+
+  // Scanning guide expand/collapse
+  const [showScanningGuide, setShowScanningGuide] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -137,8 +145,9 @@ export const CameraScanView: React.FC = () => {
         : err instanceof Error ? err.message : 'Camera access denied or device not found.';
       setCameraError(message);
       setStreamActive(false);
+      notifyError('Camera Access Issue', isDenied ? 'Camera permission was denied. Please allow camera or upload photos.' : message);
     }
-  }, [facingMode, updateCameraDevices]);
+  }, [facingMode, notifyError, updateCameraDevices]);
 
   // Stop Camera Stream
   const stopCamera = useCallback(() => {
@@ -299,6 +308,9 @@ export const CameraScanView: React.FC = () => {
     // Evaluate image quality, sharpness and lighting
     const quality = evaluateImageQuality(ctx, size, size);
     setQualityFeedback(quality);
+    if (quality.warningMessage) {
+      warning('Image Quality Warning', quality.warningMessage);
+    }
 
     setCurrentFaceDetections(detectedList);
   };
@@ -369,6 +381,10 @@ export const CameraScanView: React.FC = () => {
       setFaceColors(activeFaceId as FaceId, colorsOnly);
     }
 
+    const faceName = puzzleDef.faceNames.find(f => f.id === activeFaceId)?.name || activeFaceId;
+    const capturedCount = Object.keys(updatedScans).length;
+    success(`Captured ${faceName} (${capturedCount}/${puzzleDef.facesCount} faces)!`, 'Face Saved');
+
     // Auto-advance to the next face if not the last one
     const currentIndex = puzzleDef.faceNames.findIndex(f => f.id === activeFaceId);
     if (currentIndex < puzzleDef.faceNames.length - 1) {
@@ -393,6 +409,7 @@ export const CameraScanView: React.FC = () => {
         sampledHex: CUBE_COLORS[defColor]?.hex || '#ffffff',
       }))
     );
+    info(`Reset scanned data for ${activeFaceId} face.`, 'Retake Face');
   };
 
   // Proceed to Validation
@@ -405,6 +422,7 @@ export const CameraScanView: React.FC = () => {
     // 2. Commit normalized state to context
     commitNormalizedState(normalized);
     setInputMode('camera');
+    success('All faces scanned! Validating cube parity...', 'Scanner Complete');
 
     // 3. Fallback compatibility sync for raw states
     if (selectedPuzzle === '3x3') {
@@ -720,10 +738,38 @@ export const CameraScanView: React.FC = () => {
             )}
 
             {/* Top Badge: Current Target Face */}
-            <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700/80 text-xs text-white flex items-center gap-2 pointer-events-none shadow-md">
+            <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700/80 text-xs text-white flex items-center gap-2 pointer-events-none shadow-md z-10">
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
               <span>Target Face: <strong>{currentFaceMeta.name}</strong></span>
             </div>
+
+            {/* Quick Mobile Flip Camera Button Overlay */}
+            {inputTab === 'camera' && streamActive && (
+              <button
+                type="button"
+                onClick={handleToggleFacingMode}
+                title="Switch Front/Rear Camera"
+                className="absolute top-3.5 right-4 z-10 p-2.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-slate-700/80 shadow-lg cursor-pointer transition-transform active:scale-90"
+              >
+                <SwitchCamera className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Mobile Viewfinder Shutter Button Overlay */}
+            {inputTab === 'camera' && streamActive && (
+              <div className="absolute bottom-4 inset-x-0 flex justify-center z-10 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={handleCaptureVideo}
+                  title={`Capture ${currentFaceMeta.name}`}
+                  className="w-14 h-14 rounded-full bg-cyan-500 hover:bg-cyan-400 border-4 border-slate-950/80 shadow-2xl flex items-center justify-center cursor-pointer transition-transform active:scale-90 hover:scale-105"
+                >
+                  <div className="w-9 h-9 rounded-full border-2 border-slate-950/40 flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-slate-950" />
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* Hidden File Input */}
             <input
@@ -823,10 +869,73 @@ export const CameraScanView: React.FC = () => {
             </button>
           </div>
 
-          {/* Orientation Prompt */}
-          <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 max-w-[500px] mx-auto text-xs text-cyan-200 flex items-center gap-2.5">
-            <SunMedium className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span><strong>Orientation Tip:</strong> {getFaceInstruction(activeFaceId)}</span>
+          {/* Step-by-Step Scanning Guide & Orientation Compass */}
+          <div className="p-4 rounded-3xl bg-slate-900/60 border border-slate-800 max-w-[500px] mx-auto text-xs space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowScanningGuide(prev => !prev)}
+              className="w-full flex items-center justify-between text-left cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
+                    Scanning Guide & Face Orientation
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Tips for reliable color classification
+                  </p>
+                </div>
+              </div>
+              {showScanningGuide ? (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+
+            {showScanningGuide && (
+              <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                  <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                      <span>1. Lighting</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px] leading-relaxed">
+                      Use diffuse room light. Avoid pointing bright lamps directly at glossy stickers to eliminate glare.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                      <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>2. Distance</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px] leading-relaxed">
+                      Hold cube ~20-30 cm away so all facelets comfortably fill the circular target guides.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-bold">
+                      <Compass className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>3. Orientation</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px] leading-relaxed">
+                      Standard WCA order: White Up, Green Front. Follow the top ribbon tabs from left to right.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-cyan-200 text-[11px] flex items-center gap-2">
+                  <SunMedium className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span><strong>Current Target ({currentFaceMeta.id}):</strong> {getFaceInstruction(activeFaceId)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

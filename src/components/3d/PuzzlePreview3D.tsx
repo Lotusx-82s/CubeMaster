@@ -332,7 +332,8 @@ export const PuzzlePreview3D: React.FC<PuzzlePreview3DProps> = ({
     <div className={`relative overflow-hidden select-none ${className}`}>
       <Canvas
         camera={{ position: [2.8, 2.2, 3.4], fov: 42 }}
-        gl={{ antialias: true, alpha: true }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
         <ambientLight intensity={0.9} />
         <directionalLight position={[10, 10, 10]} intensity={1.8} />

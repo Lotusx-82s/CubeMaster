@@ -15,6 +15,7 @@ import {
   Globe
 } from 'lucide-react';
 import { useCube } from '../context';
+import { useNotification } from '../context/NotificationContext';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import type { FaceId, ValidationCategory, ValidationIssue } from '../types/cube';
 import { CUBE_COLORS } from '../types/cube';
@@ -65,6 +66,7 @@ export const CubeValidationView: React.FC = () => {
     normalizedPuzzleState,
     inputMode,
   } = useCube();
+  const { success: notifySuccess, error: notifyError, warning: notifyWarning } = useNotification();
 
   const [isSolving, setIsSolving] = useState(false);
   const [solverError, setSolverError] = useState<string | null>(null);
@@ -93,6 +95,10 @@ export const CubeValidationView: React.FC = () => {
       const result = await solvePuzzle(normalizedPuzzleState);
 
       if (result.success) {
+        notifySuccess(
+          'Solution Generated', 
+          `Solved ${puzzleDef.name} in ${result.steps.length} verified move${result.steps.length === 1 ? '' : 's'}.`
+        );
         loadSolution(
           result.steps, 
           is3x3 ? cubeState : undefined, 
@@ -101,10 +107,14 @@ export const CubeValidationView: React.FC = () => {
         );
         setView('solution');
       } else {
-        setSolverError(result.error || `Failed to calculate a valid solution for ${puzzleDef.name}.`);
+        const errorMsg = result.error || `Failed to calculate a valid solution for ${puzzleDef.name}.`;
+        setSolverError(errorMsg);
+        notifyError('Solver Failure', errorMsg);
       }
     } catch (err: unknown) {
-      setSolverError(err instanceof Error ? err.message : 'Unknown solver error occurred during search.');
+      const errorMsg = err instanceof Error ? err.message : 'Unknown solver error occurred during search.';
+      setSolverError(errorMsg);
+      notifyError('Solver Exception', errorMsg);
     } finally {
       setIsSolving(false);
     }
@@ -133,7 +143,14 @@ export const CubeValidationView: React.FC = () => {
         backTo="manual"
         actions={
           <button
-            onClick={() => runValidation()}
+            onClick={() => {
+              runValidation();
+              if (isValid) {
+                notifySuccess('Validation Passed', 'Puzzle configuration satisfies all invariants.');
+              } else {
+                notifyWarning('Validation Issues', `${issues.length} issue(s) detected.`);
+              }
+            }}
             className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer flex items-center gap-2"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />

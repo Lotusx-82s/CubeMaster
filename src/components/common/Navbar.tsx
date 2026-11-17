@@ -11,13 +11,18 @@ import {
   Sparkles,
   ChevronRight,
   Layers,
-  Link2
+  Link2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useCube } from '../../context';
+import { useTheme } from '../../context/ThemeContext';
+import Tooltip from './Tooltip';
 import type { AppView } from '../../types/navigation';
 
 export const Navbar: React.FC = () => {
   const { currentView, setView, selectedPuzzle } = useCube();
+  const { toggleTheme, isDark } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems: { id: AppView; label: string; icon: React.FC<{ className?: string }> }[] = [
@@ -60,11 +65,11 @@ export const Navbar: React.FC = () => {
                 Cube<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500">Master</span>
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                AI Vision
+                PRO 3D
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              Modern 3D Rubik's Cube Solver
+              Intelligent Rubik's Cube Solver & Visualizer
             </p>
           </div>
         </div>
@@ -78,7 +83,7 @@ export const Navbar: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 shadow-sm shadow-cyan-500/10'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -91,8 +96,24 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Action Button & Active Puzzle Badge */}
+        {/* Action Button & Active Puzzle Badge & Theme Toggle */}
         <div className="hidden sm:flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <Tooltip content={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle Dark and Light Theme"
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer"
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-400 transition-transform rotate-0 hover:rotate-45" />
+              ) : (
+                <Moon className="w-4 h-4 text-cyan-400 transition-transform rotate-0 hover:-rotate-12" />
+              )}
+            </button>
+          </Tooltip>
+
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs font-medium text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-400">Puzzle:</span>
@@ -109,13 +130,24 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Mobile menu toggle button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
-          aria-label="Toggle Navigation Menu"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex sm:hidden items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle Theme"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"
+          >
+            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
@@ -143,7 +175,27 @@ export const Navbar: React.FC = () => {
             );
           })}
 
-          <div className="pt-3 border-t border-slate-800/80">
+          <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+            <div className="flex items-center justify-between px-2 py-1 text-xs text-slate-400">
+              <span>Theme Preference:</span>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200"
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Dark Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Light Mode</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             <button
               onClick={() => handleNavClick('manual')}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"

@@ -672,11 +672,29 @@ export const InteractivePuzzle3D: React.FC<InteractivePuzzle3DProps> = ({
 }) => {
   const controlsRef = useRef<any>(null);
 
+  const setCameraView = (pos: [number, number, number]) => {
+    if (controlsRef.current) {
+      controlsRef.current.object.position.set(pos[0], pos[1], pos[2]);
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+  };
+
+  const handleZoom = (delta: number) => {
+    if (controlsRef.current) {
+      const camera = controlsRef.current.object;
+      const factor = delta > 0 ? 0.85 : 1.15;
+      camera.position.multiplyScalar(factor);
+      controlsRef.current.update();
+    }
+  };
+
   return (
     <div className={`relative rounded-3xl overflow-hidden select-none bg-gradient-to-b from-slate-900/80 via-slate-950 to-slate-950 border border-slate-800 shadow-2xl ${className}`}>
       <Canvas
         camera={{ position: [4.4, 3.4, 5.2], fov: 42 }}
         shadows
+        dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
         <ambientLight intensity={0.9} />
@@ -706,6 +724,59 @@ export const InteractivePuzzle3D: React.FC<InteractivePuzzle3DProps> = ({
       <div className="absolute bottom-4 left-4 text-[11px] font-medium text-slate-400 bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700/60 pointer-events-none flex items-center gap-2 shadow-lg">
         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
         <span>Drag to rotate 3D view • Pinch / scroll to zoom</span>
+      </div>
+
+      {/* Camera Angle Presets & Zoom Buttons */}
+      <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md p-1 rounded-xl border border-slate-700/60 shadow-lg z-10">
+        <button
+          type="button"
+          onClick={() => setCameraView([4.4, 3.4, 5.2])}
+          title="Isometric Angle"
+          className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Iso
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraView([0, 0, 5.5])}
+          title="Front View"
+          className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Front
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraView([0, 5.5, 0.01])}
+          title="Top View"
+          className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Top
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraView([5.5, 0, 0])}
+          title="Right View"
+          className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Right
+        </button>
+        <div className="w-[1px] h-3 bg-slate-700 mx-0.5" />
+        <button
+          type="button"
+          onClick={() => handleZoom(1)}
+          title="Zoom In"
+          className="w-6 h-6 rounded-lg text-xs font-bold text-cyan-400 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => handleZoom(-1)}
+          title="Zoom Out"
+          className="w-6 h-6 rounded-lg text-xs font-bold text-cyan-400 hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+        >
+          -
+        </button>
       </div>
 
       {/* Active Layer Move Indicator */}

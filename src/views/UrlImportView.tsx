@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useCube } from '../context';
+import { useNotification } from '../context/NotificationContext';
 import PageHeader from '../components/common/PageHeader';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
@@ -67,6 +68,7 @@ export const UrlImportView: React.FC = () => {
     setInputMode, 
     setView
   } = useCube();
+  const { success: notifySuccess, error: notifyError, info: notifyInfo } = useNotification();
 
   const [inputUrl, setInputUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -79,15 +81,18 @@ export const UrlImportView: React.FC = () => {
     try {
       if (!navigator.clipboard?.readText) {
         setErrorFeedback('Clipboard read is not supported in this browser. Please paste the URL manually.');
+        notifyError('Clipboard Error', 'Clipboard reading is not supported. Please paste manually.');
         return;
       }
       const text = await navigator.clipboard.readText();
       if (text) {
         setInputUrl(text.trim());
         setErrorFeedback(null);
+        notifyInfo('URL Pasted', 'Simulator URL pasted from clipboard.');
       }
     } catch {
       setErrorFeedback('Could not access clipboard. Please paste the URL into the input field directly.');
+      notifyError('Clipboard Error', 'Could not access clipboard. Please paste manually.');
     }
   };
 
@@ -104,6 +109,7 @@ export const UrlImportView: React.FC = () => {
     if (!targetUrl.trim()) {
       setErrorFeedback('Please enter or paste a simulator URL.');
       setParseResult(null);
+      notifyError('Empty Input', 'Please enter or paste a simulator URL.');
       return;
     }
 
@@ -118,8 +124,10 @@ export const UrlImportView: React.FC = () => {
 
       if (!result.success) {
         setErrorFeedback(result.error || 'Failed to extract puzzle configuration from this URL.');
+        notifyError('Import Failed', result.error || 'Failed to extract puzzle configuration.');
       } else {
         setErrorFeedback(null);
+        notifySuccess('Import Successful', `${result.simulatorName || 'Simulator'} configuration extracted.`);
       }
     }, 250);
   };
@@ -141,6 +149,7 @@ export const UrlImportView: React.FC = () => {
     }
 
     setInputMode('url');
+    notifySuccess('Configuration Imported', 'Navigating to puzzle parity validation...');
 
     // 2. Navigate to Validation view
     setView('validate');

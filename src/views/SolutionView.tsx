@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   Sliders, 
   Compass, 
-  BookOpen, 
   Trophy, 
   ShieldAlert, 
   Sparkles, 
@@ -28,11 +27,14 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCube } from '../context';
+import { useNotification } from '../context/NotificationContext';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import PageHeader from '../components/common/PageHeader';
 import { isCubeSolved, createSolvedCubeState, applyMoves, cloneCubeState } from '../services/cubeState';
 import { solvePuzzle } from '../services/solvers';
 import InteractivePuzzle3D, { type AnimatingMove } from '../components/3d/InteractivePuzzle3D';
+import EmptyState from '../components/common/EmptyState';
+import Tooltip from '../components/common/Tooltip';
 import { 
   calculateEstimatedTime, 
   formatSolutionString, 
@@ -84,6 +86,7 @@ export const SolutionView: React.FC = () => {
     scrambleMoves,
     setView,
   } = useCube();
+  const { success, info } = useNotification();
 
   const [speedPreset, setSpeedPreset] = useState<SpeedPreset>('normal');
   const [animatingMove, setAnimatingMove] = useState<AnimatingMove | null>(null);
@@ -336,6 +339,7 @@ export const SolutionView: React.FC = () => {
     try {
       await navigator.clipboard.writeText(formattedSolution);
       setIsCopied(true);
+      success('Move sequence copied to clipboard!', 'Solution Copied');
       setTimeout(() => setIsCopied(false), 2200);
     } catch {
       const ta = document.createElement('textarea');
@@ -345,6 +349,7 @@ export const SolutionView: React.FC = () => {
       document.execCommand('copy');
       document.body.removeChild(ta);
       setIsCopied(true);
+      success('Move sequence copied to clipboard!', 'Solution Copied');
       setTimeout(() => setIsCopied(false), 2200);
     }
   };
@@ -352,11 +357,13 @@ export const SolutionView: React.FC = () => {
   // Download TXT
   const handleDownloadTXT = () => {
     downloadSolutionAsTXT(puzzleDef, solutionSteps, scrambleMoves);
+    info('Downloaded readable step-by-step TXT solution guide.', 'TXT Export');
   };
 
   // Download PDF
   const handleDownloadPDF = () => {
     downloadSolutionAsPDF(puzzleDef, solutionSteps, scrambleMoves);
+    success('Generated and downloaded print-ready PDF solution guide.', 'PDF Export');
   };
 
   // Demo Scramble and Solve (3x3 Kociemba Two-Phase)
@@ -369,6 +376,7 @@ export const SolutionView: React.FC = () => {
     const result = await solvePuzzle('3x3', scrambledState);
     if (result.success) {
       loadSolution(result.steps, scrambledState);
+      success(`Generated ${result.totalMoves}-move solution in ${result.executionTimeMs}ms!`, 'Solved');
     }
   };
 
@@ -795,13 +803,15 @@ export const SolutionView: React.FC = () => {
                 </p>
               </div>
             ) : totalSteps === 0 ? (
-              <div className="text-center py-6 space-y-2">
-                <BookOpen className="w-8 h-8 text-slate-500 mx-auto" />
-                <h4 className="text-base font-bold text-white">No Active Solution Loaded</h4>
-                <p className="text-xs text-slate-400">
-                  Scramble the puzzle or input stickers in the validation view to calculate a solution.
-                </p>
-              </div>
+              <EmptyState
+                type="solution"
+                title="No Active Solution Loaded"
+                description="Scramble the puzzle, scan faces with camera, or enter stickers manually to compute an optimal verified solution."
+                actionText="Select Puzzle"
+                onAction={() => setView('select')}
+                secondaryActionText="Practice Moves"
+                onSecondaryAction={() => setView('settings')}
+              />
             ) : null}
 
             {/* Playback Controls Toolbar */}
@@ -810,59 +820,65 @@ export const SolutionView: React.FC = () => {
                 {/* Primary Button Controls */}
                 <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                   {/* Restart */}
-                  <button
-                    onClick={handleRestart}
-                    title="Restart to Beginning (Step 0)"
-                    className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
+                  <Tooltip content="Restart to Beginning (Step 0)">
+                    <button
+                      onClick={handleRestart}
+                      className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
 
                   {/* Previous Move */}
-                  <button
-                    onClick={handlePrevStep}
-                    disabled={activeStepIndex === 0 || animatingMove !== null}
-                    title="Previous Move (Step back in 3D)"
-                    className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
-                  >
-                    <SkipBack className="w-4 h-4" />
-                  </button>
+                  <Tooltip content="Previous Move (Step back in 3D)">
+                    <button
+                      onClick={handlePrevStep}
+                      disabled={activeStepIndex === 0 || animatingMove !== null}
+                      className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
 
                   {/* Play / Pause Toggle */}
-                  <button
-                    onClick={() => {
-                      if (isPlayingSolution) {
-                        setIsPlayingSolution(false);
-                      } else {
-                        if (activeStepIndex >= totalSteps) handleRestart();
-                        setIsPlayingSolution(true);
-                      }
-                    }}
-                    className="py-3 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    {isPlayingSolution ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    <span>{isPlayingSolution ? 'Pause' : 'Play'}</span>
-                  </button>
+                  <Tooltip content={isPlayingSolution ? 'Pause Animation' : 'Play 3D Animation'}>
+                    <button
+                      onClick={() => {
+                        if (isPlayingSolution) {
+                          setIsPlayingSolution(false);
+                        } else {
+                          if (activeStepIndex >= totalSteps) handleRestart();
+                          setIsPlayingSolution(true);
+                        }
+                      }}
+                      className="py-3 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      {isPlayingSolution ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      <span>{isPlayingSolution ? 'Pause' : 'Play'}</span>
+                    </button>
+                  </Tooltip>
 
                   {/* Next Move */}
-                  <button
-                    onClick={handleNextStep}
-                    disabled={activeStepIndex >= totalSteps || animatingMove !== null}
-                    title="Next Move (Step forward in 3D)"
-                    className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
-                  >
-                    <SkipForward className="w-4 h-4" />
-                  </button>
+                  <Tooltip content="Next Move (Step forward in 3D)">
+                    <button
+                      onClick={handleNextStep}
+                      disabled={activeStepIndex >= totalSteps || animatingMove !== null}
+                      className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-35 transition-colors cursor-pointer"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
 
                   {/* Solve Automatically */}
-                  <button
-                    onClick={handleSolveAutomatically}
-                    className="py-3 px-4 rounded-2xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
-                    title="Run all moves continuously to solved state"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Auto-Solve</span>
-                  </button>
+                  <Tooltip content="Run all remaining moves automatically">
+                    <button
+                      onClick={handleSolveAutomatically}
+                      className="py-3 px-4 rounded-2xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Auto-Solve</span>
+                    </button>
+                  </Tooltip>
                 </div>
 
                 {/* Animation Speed Presets */}

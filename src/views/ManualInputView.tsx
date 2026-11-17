@@ -18,6 +18,7 @@ import {
 import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import { parseManualInput } from '../services/state';
+import { useNotification } from '../context/NotificationContext';
 import type { CubeColor, FaceId } from '../types/cube';
 import { CUBE_COLORS } from '../types/cube';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
@@ -51,6 +52,7 @@ export const ManualInputView: React.FC = () => {
     setInputMode,
     setView 
   } = useCube();
+  const { success, info } = useNotification();
 
   const puzzleDef = PUZZLE_DEFINITIONS.find(p => p.id === selectedPuzzle) || PUZZLE_DEFINITIONS[1];
   const is3x3 = selectedPuzzle === '3x3';
@@ -196,6 +198,7 @@ export const ManualInputView: React.FC = () => {
     } else {
       resetGenericPuzzle();
     }
+    success('Puzzle reset to solved state.', 'Reset Solved');
   };
 
   // Clear entire cube to empty stickers
@@ -207,6 +210,7 @@ export const ManualInputView: React.FC = () => {
     } else {
       clearGenericPuzzle();
     }
+    info('Cleared all stickers for fresh manual coloring.', 'Palette Cleared');
   };
 
   // Validate Cube button handler
@@ -230,6 +234,7 @@ export const ManualInputView: React.FC = () => {
     // 2. Commit normalized state to context
     commitNormalizedState(normalized);
     setInputMode('manual');
+    success('Stickers captured! Checking physical parity...', 'Validation');
 
     // 3. Proceed to Validation view
     setView('validate');

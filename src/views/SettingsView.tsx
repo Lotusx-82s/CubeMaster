@@ -6,9 +6,14 @@ import {
   RotateCw,
   Shuffle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sun,
+  Moon,
+  Sparkles
 } from 'lucide-react';
 import { useCube } from '../context';
+import { useTheme } from '../context/ThemeContext';
+import { useNotification } from '../context/NotificationContext';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PageHeader from '../components/common/PageHeader';
 
@@ -21,6 +26,8 @@ export const SettingsView: React.FC = () => {
     playbackSpeed,
     setPlaybackSpeed
   } = useCube();
+  const { theme, setTheme } = useTheme();
+  const { success, info } = useNotification();
 
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
@@ -64,12 +71,22 @@ export const SettingsView: React.FC = () => {
     },
   ];
 
+  const handleScramble = () => {
+    scrambleCube(15);
+    info('Virtual 3D cube scrambled with 15 WCA moves.', 'Scramble Applied');
+  };
+
+  const handleReset = () => {
+    resetToSolved();
+    success('Virtual 3D cube reset to solved state.', 'Reset Complete');
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <PageHeader
-        title="Settings & Notation Guide"
-        subtitle="Learn official WCA move notations, practice interactive turns on the virtual 3D cube, and configure application preferences."
-        badge="Knowledge Base"
+        title="Settings & Knowledge Base"
+        subtitle="Configure appearance themes, playback speed, practice interactive turns on the virtual 3D cube, and consult WCA notation references."
+        badge="Preferences"
         backTo="home"
       />
 
@@ -89,14 +106,14 @@ export const SettingsView: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => scrambleCube(15)}
+                  onClick={handleScramble}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <Shuffle className="w-3 h-3" />
                   <span>Scramble</span>
                 </button>
                 <button
-                  onClick={resetToSolved}
+                  onClick={handleReset}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <RotateCw className="w-3 h-3" />
@@ -129,6 +146,50 @@ export const SettingsView: React.FC = () => {
         </div>
 
         <div className="lg:col-span-5 space-y-6">
+          {/* Theme Preferences Card */}
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>Appearance & Theme</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setTheme('dark');
+                  info('Switched to Dark Theme', 'Theme Updated');
+                }}
+                className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-slate-950 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <Moon className="w-6 h-6 text-cyan-400" />
+                <span className="font-bold">Dark Theme</span>
+                <span className="text-[10px] text-slate-400">Deep slate & cyan neon</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTheme('light');
+                  info('Switched to Light Theme', 'Theme Updated');
+                }}
+                className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-slate-100 border-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/20'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <Sun className="w-6 h-6 text-amber-500" />
+                <span className="font-bold">Light Theme</span>
+                <span className="text-[10px] text-slate-400">Crisp clean daytime view</span>
+              </button>
+            </div>
+          </div>
+
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Sliders className="w-4 h-4 text-cyan-400" />
