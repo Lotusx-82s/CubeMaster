@@ -25,8 +25,8 @@ export interface CubeContextType {
   setFaceColors: (face: FaceId, colors: (CubeColor | null)[]) => void;
   selectedColor: CubeColor;
   setSelectedColor: (color: CubeColor) => void;
-  activeFace: FaceId;
-  setActiveFace: (face: FaceId) => void;
+  activeFace: string;
+  setActiveFace: (face: string) => void;
   
   resetToSolved: () => void;
   clearCube: (preserveCenters?: boolean) => void;

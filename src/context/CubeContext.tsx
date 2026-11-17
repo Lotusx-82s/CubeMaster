@@ -31,6 +31,9 @@ import {
 import type { NormalizedPuzzleState } from '../services/state/types';
 import { CubeContext } from './cubeContextInstance';
 import type { CubeContextType } from './cubeContextInstance';
+import { Cube2x2Model, modelTo2x2GenericState } from '../services/solvers/pocket2x2';
+import { applyPyraminxMove } from '../services/solvers/pyraminx';
+import { applySkewbMove } from '../services/solvers/skewb';
 
 function createInitialGenericState(puzzleId: PuzzleTypeId): Record<string, (CubeColor | null)[]> {
   const def = PUZZLE_DEFINITIONS.find(p => p.id === puzzleId) || PUZZLE_DEFINITIONS[1];
@@ -59,7 +62,7 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initialCubeState, setInitialCubeState] = useState<CubeState3x3 | null>(null);
   const [initialGenericState, setInitialGenericState] = useState<Record<string, (CubeColor | null)[]> | null>(null);
   const [selectedColor, setSelectedColor] = useState<CubeColor>('white');
-  const [activeFace, setActiveFace] = useState<FaceId>('F');
+  const [activeFace, setActiveFace] = useState<string>('F');
   
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [solutionSteps, setSolutionSteps] = useState<SolutionStep[]>([]);
@@ -187,19 +190,64 @@ export const CubeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [inputMode]);
 
   const scrambleCube = useCallback((length = 20) => {
-    const moves = generateScramble(length);
-    setScrambleMoves(moves);
-    setCubeState(prev => {
-      const nextState = applyMoves(prev, moves);
-      setNormalizedPuzzleState(cubeStateToNormalized(nextState, 'manual', { scrambleMoves: moves }));
-      return nextState;
-    });
+    let moves: string[] = [];
+
+    if (selectedPuzzle === '3x3') {
+      moves = generateScramble(length);
+      setScrambleMoves(moves);
+      setCubeState(prev => {
+        const nextState = applyMoves(prev, moves);
+        setNormalizedPuzzleState(cubeStateToNormalized(nextState, 'manual', { scrambleMoves: moves }));
+        return nextState;
+      });
+    } else if (selectedPuzzle === '2x2') {
+      const moves2x2 = ['U', "U'", 'U2', 'R', "R'", 'R2', 'F', "F'", 'F2'];
+      let model = new Cube2x2Model();
+      let lastFace = '';
+      for (let i = 0; i < Math.min(length, 11); i++) {
+        const valid = moves2x2.filter(m => m[0] !== lastFace);
+        const m = valid[Math.floor(Math.random() * valid.length)];
+        model = model.move(m);
+        moves.push(m);
+        lastFace = m[0];
+      }
+      const nextGeneric = modelTo2x2GenericState(model);
+      setScrambleMoves(moves);
+      setGenericPuzzleState(nextGeneric);
+      setNormalizedPuzzleState(genericStateToNormalized('2x2', nextGeneric, 'manual', { scrambleMoves: moves }));
+    } else if (selectedPuzzle === 'pyraminx') {
+      const movesPyr = ['U', "U'", 'L', "L'", 'R', "R'", 'B', "B'", 'u', "u'", 'l', "l'", 'r', "r'", 'b', "b'"];
+      let current = createInitialGenericState('pyraminx');
+      for (let i = 0; i < Math.min(length, 14); i++) {
+        const m = movesPyr[Math.floor(Math.random() * movesPyr.length)];
+        current = applyPyraminxMove(current, m);
+        moves.push(m);
+      }
+      setScrambleMoves(moves);
+      setGenericPuzzleState(current);
+      setNormalizedPuzzleState(genericStateToNormalized('pyraminx', current, 'manual', { scrambleMoves: moves }));
+    } else if (selectedPuzzle === 'skewb') {
+      const movesSkewb = ['R', "R'", 'L', "L'", 'U', "U'", 'B', "B'"];
+      let current = createInitialGenericState('skewb');
+      let lastMove = '';
+      for (let i = 0; i < Math.min(length, 10); i++) {
+        const valid = movesSkewb.filter(m => m !== lastMove);
+        const m = valid[Math.floor(Math.random() * valid.length)];
+        current = applySkewbMove(current, m);
+        moves.push(m);
+        lastMove = m;
+      }
+      setScrambleMoves(moves);
+      setGenericPuzzleState(current);
+      setNormalizedPuzzleState(genericStateToNormalized('skewb', current, 'manual', { scrambleMoves: moves }));
+    }
+
     setValidationResult(null);
     setSolutionSteps([]);
     setActiveStepIndex(0);
     setIsPlayingSolution(false);
     return moves;
-  }, []);
+  }, [selectedPuzzle]);
 
   const applySingleMove = useCallback((move: string) => {
     setCubeState(prev => {

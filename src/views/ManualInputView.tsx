@@ -19,7 +19,7 @@ import { useCube } from '../context';
 import { PUZZLE_DEFINITIONS } from '../services/puzzles';
 import { parseManualInput } from '../services/state';
 import { useNotification } from '../context/NotificationContext';
-import type { CubeColor, FaceId } from '../types/cube';
+import type { CubeColor, FaceId, StandardFaceId } from '../types/cube';
 import { CUBE_COLORS } from '../types/cube';
 import RubiksCube3D from '../components/3d/RubiksCube3D';
 import PuzzlePreview3D from '../components/3d/PuzzlePreview3D';
@@ -583,9 +583,11 @@ export const ManualInputView: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => {
-                if (is3x3) scrambleCube(20);
+                scrambleCube(20);
+                success(`Generated random scramble for ${puzzleDef.name}.`, 'Random Scramble');
               }}
-              disabled={!is3x3}
+              disabled={!puzzleDef.supported}
+              title={puzzleDef.supported ? 'Generate legal random scramble' : 'Scramble in development for this geometry'}
               className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
             >
               <Shuffle className="w-3.5 h-3.5 text-amber-400" />
@@ -899,7 +901,7 @@ export const ManualInputView: React.FC = () => {
                   onStickerClick={handle3x3StickerClick}
                   interactive={true}
                   autoRotate={false}
-                  highlightFace={activeFace}
+                  highlightFace={activeFace as StandardFaceId}
                 />
               ) : (
                 <PuzzlePreview3D 

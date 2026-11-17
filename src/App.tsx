@@ -76,17 +76,17 @@ const StepProgressBar: React.FC = () => {
 };
 
 const MainContent: React.FC = () => {
-  const { currentView } = useCube();
+  const { currentView, selectedPuzzle } = useCube();
 
   return (
     <main className="flex-1 flex flex-col w-full relative z-10">
       <StepProgressBar />
       {currentView === 'home' && <HomeView />}
       {currentView === 'select' && <CubeSelectionView />}
-      {currentView === 'scan' && <CameraScanView />}
-      {currentView === 'manual' && <ManualInputView />}
-      {currentView === 'url-import' && <UrlImportView />}
-      {currentView === 'validate' && <CubeValidationView />}
+      {currentView === 'scan' && <CameraScanView key={selectedPuzzle} />}
+      {currentView === 'manual' && <ManualInputView key={selectedPuzzle} />}
+      {currentView === 'url-import' && <UrlImportView key={selectedPuzzle} />}
+      {currentView === 'validate' && <CubeValidationView key={selectedPuzzle} />}
       {currentView === 'solution' && <SolutionView />}
       {currentView === 'settings' && <SettingsView />}
     </main>

@@ -327,15 +327,35 @@ export const CameraScanView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset input value so selecting the same file again triggers onChange
+    e.target.value = '';
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      notifyError('Invalid File Type', 'Please upload a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      notifyError('Upload Failed', 'Failed to read the image file. Please try another photo.');
+    };
     reader.onload = (event) => {
       const src = event.target?.result as string;
+      if (!src) {
+        notifyError('Upload Failed', 'The selected image file is empty.');
+        return;
+      }
       setUploadedImageSrc(src);
       setInputTab('upload');
 
       const img = new Image();
+      img.onerror = () => {
+        notifyError('Image Decode Error', 'Could not decode image. Please upload a standard JPG or PNG file.');
+      };
       img.onload = () => {
         processImageCanvas(img);
+        success('Photo uploaded and processed!', 'Image Loaded');
       };
       img.src = src;
     };
